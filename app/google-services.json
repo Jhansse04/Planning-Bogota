@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "928415398812",
+    "project_id": "planningbgt-fbd1b",
+    "storage_bucket": "planningbgt-fbd1b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:928415398812:android:b02f134623a7aea213e659",
+        "android_client_info": {
+          "package_name": "com.example.planningbgt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBV7YBhbyn5ZeC2gT8oV911BWyt3YcS--c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

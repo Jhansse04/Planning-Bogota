@@ -1,0 +1,102 @@
+PROBLEMA
+
+Bogotá cuenta con una oferta cultural y de entretenimiento inmensa y en constante crecimiento. Sin embargo, la información sobre estos planes se encuentra dispersa, lo que hace casi imposible para locales y turistas estar al tanto de todo lo que ocurre en la ciudad. Esta fragmentación genera que las personas se pierdan de eventos de su interés o no sepan qué hacer en su tiempo libre. Por lo tanto, surge la necesidad de crear una plataforma que centralice y actualice la agenda de la ciudad, permitiendo a los usuarios descubrir fácilmente planes y eventos para cualquier día de la semana.
+
+PÚBLICO OBSERVADO
+
+El público objetivo está conformado por residentes locales y turistas con interés en la agenda cultural, recreativa y turística de Bogotá. Este grupo se caracteriza por la necesidad insatisfecha de acceder a información oportuna y centralizada de las distintas actividades realizadas en la ciudad.
+
+PRODUCT GOAL
+
+	Transformar la manera en que locales y turistas experimentan Bogotá, convirtiendo el mapa de la ciudad en una guía dinámica y personalizada. Queremos que los usuarios no solo encuentren planes fácilmente, sino que conviertan cada salida en un logro, registrando sus experiencias y recibiendo reconocimientos por explorar la riqueza cultural y turística de la capital.
+
+PRODUCT BACKLOG
+
+-	Como usuario, quiero registrarme y hacer login para guardar mi progreso y perfil.
+-	Como usuario, quiero navegar por un mapa de Bogotá con pines geolocalizados para ver qué hay cerca.
+-	Como usuario, quiero buscar eventos o lugares específicos y filtrar por categoría (arte, gastronomía, música, etc.).
+-	Como usuario, quiero hacer clic en un pin o evento para ver información detallada (horarios, ubicación, descripción, costos).
+-	Como usuario, quiero marcar los lugares que he visitado para llevar un registro personal.
+
+
+
+
+Requerimientos funcionales:
+Base de Datos
+• Diseño del modelo no relacional usando firebase firestore
+• Conexión de base de datos con el back-end
+• Estrategia de índices compuestos para queries geoespaciales (eventos por
+ubicación + nivel de cuenta)
+Inicio de sesión y registro
+• Registro de usuario
+• Inicio de Sesión
+• Autenticación (por google con authentication de firebase)
+• Recuperación de contraseña
+• Cierre de sesión
+• Gestión y modificación de cuenta
+• Verificación de correo/teléfono antes de habilitar creación de eventos públicos
+(antifraude)
+Conexiones y servicios
+• Api de MapLibre + OpenStreetMap para el manejo de mapas
+• Geolocalización en tiempo real del dispositivo (FusedLocationProviderClient)
+Amigos y conexiones
+• Buscar otros usuarios en la app
+• Agregar o hacer una conexión con un amigo
+• Ver los planes/eventos a los que se inscribe un amigo
+• Crear eventos (privados y públicos)
+• Aceptar/rechazar solicitudes de amistad (no debería ser conexión automática)
+• Eliminar/bloquear un contacto
+• Invitar amigos específicos a un evento privado
+Navegación visual
+• Acceder a eventos en el mapa y ver más información (detalle: título,
+descripción, fecha, aforo, anfitrión)
+• Crear eventos que aparezcan a los amigos
+• Reservar y programar eventos que se muestren en el mapa
+• Filtros en el mapa (por fecha, categoría, distancia, tipo de evento)
+• Marcadores cuando hay muchos eventos cercanos
+• Indicador visual distinto para evento privado vs. público vs. "de pago por
+difusión"
+Notificaciones
+• Alertas en tiempo real de novedades de sus grupos
+• Notificación de solicitud de amistad
+• Notificación de recordatorio de evento próximo (ej. 1 hora antes)
+• Panel usuario (eventos privados, límite de cuentas asociadas o lista de usuarios
+enlazados)
+• Panel usuario pro (cuentas asociadas ilimitadas, eventos públicos (para todos
+los usuarios))
+• Panel administrador (Permisos para la gestión de a la aplicación,
+• moderación de eventos reportados, gestión de usuarios (suspender/banear),
+métricas de uso y pagos)
+Soporte de Ayuda (Chat-bot)
+• Preguntas frecuentes
+• Ayuda
+• Comunícate con nosotros
+• Escalamiento a soporte humano (formulario o correo) si el chatbot no resuelve
+Perfil
+• Perfil configurable: usuario, foto de perfil, privacidad
+• Historial de eventos creados/asistidos por el usuario
+• Configuración de visibilidad del perfil (quién puede verlo: todos, amigos, nadie)
+• Eliminación de cuenta (requisito legal en varias jurisdicciones de protección de
+datos)
+Módulo de eventos
+• Editar o cancelar un evento ya creado
+• Definir aforo máximo / cupos del evento
+• Categorizar el evento (fiesta, deporte, cultural, académico, etc.)
+• Comentarios o valoración post-evento
+Requerimientos no funcionales:
+Rendimiento :El mapa debe cargar y renderizar hasta 50 eventos visibles en <5
+segundos con conexión 4G estándar }
+Escalabilidad :La arquitectura en Firestore debe soportar crecimiento de usuarios sin
+rediseño del modelo
+Seguridad :Datos sensibles (credenciales) nunca se almacenan en el cliente;
+todo pago se valida server-side
+Seguridad Cumplimiento de Firestore Security Rules: un usuario nunca debe poder
+leer/escribir datos de otro sin permiso
+Privacidad / legal: Cumplimiento de la Ley 1581 de 2012 (Habeas Data, Colombia) para
+tratamiento de datos personales
+Disponibilidad: Uptime objetivo ≥ 99% dependiente de SLA de Firebase,
+que ya lo garantizan
+Compatibilidad: Soporte mínimo Android 10.0 en adelante, para cubrir la
+mayoría de dispositivos sin sobrecostos de compatibilidad
+Costos: Vigilar cuota gratuita de Firebase firestore (Spark Plan)
+Accesibilidad: Contraste de color adecuado y tamaños de fuente escalables
