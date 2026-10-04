@@ -46,6 +46,12 @@ dependencies {
     // MapLibre
     implementation("org.maplibre.gl:android-sdk:11.0.0")
 
+    // Coil for loading profile images
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // Material Icons Extended
+    implementation("androidx.compose.material:material-icons-extended")
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

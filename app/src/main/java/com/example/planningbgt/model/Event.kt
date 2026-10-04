@@ -13,5 +13,6 @@ data class Event(
     val category: String = "",
     val hostId: String = "",
     val eventType: String = "public", // public, private, paid_promotion
+    val attendees: List<String> = emptyList(),
     val createdAt: Timestamp = Timestamp.now()
 )

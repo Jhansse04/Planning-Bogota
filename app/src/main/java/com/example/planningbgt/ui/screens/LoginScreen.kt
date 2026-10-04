@@ -5,6 +5,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
@@ -22,6 +23,11 @@ fun LoginScreen(
     val authRepository = remember { com.example.planningbgt.repository.AuthRepository() }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val textFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.Black,
+        unfocusedTextColor = Color.Black
+    )
 
     Column(
         modifier = Modifier
@@ -43,6 +49,7 @@ fun LoginScreen(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("Nombre completo") },
+                colors = textFieldColors,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
@@ -52,6 +59,7 @@ fun LoginScreen(
             value = email,
             onValueChange = { email = it },
             label = { Text("Correo electrónico") },
+            colors = textFieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(12.dp))
@@ -60,6 +68,7 @@ fun LoginScreen(
             onValueChange = { password = it },
             label = { Text("Contraseña") },
             visualTransformation = PasswordVisualTransformation(),
+            colors = textFieldColors,
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(12.dp))

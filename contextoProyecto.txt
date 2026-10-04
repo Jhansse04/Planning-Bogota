@@ -85,7 +85,7 @@ Módulo de eventos
 • Comentarios o valoración post-evento
 Requerimientos no funcionales:
 Rendimiento :El mapa debe cargar y renderizar hasta 50 eventos visibles en <5
-segundos con conexión 4G estándar }
+segundos con conexión 4G estándar 
 Escalabilidad :La arquitectura en Firestore debe soportar crecimiento de usuarios sin
 rediseño del modelo
 Seguridad :Datos sensibles (credenciales) nunca se almacenan en el cliente;
@@ -100,3 +100,72 @@ Compatibilidad: Soporte mínimo Android 10.0 en adelante, para cubrir la
 mayoría de dispositivos sin sobrecostos de compatibilidad
 Costos: Vigilar cuota gratuita de Firebase firestore (Spark Plan)
 Accesibilidad: Contraste de color adecuado y tamaños de fuente escalables
+
+
+
+
+HISTORIAS DE USUARIO
+
+| Title |
+| --- |
+| HU\-01 — Persistencia de datos: Como sistema, quiero almacenar la información de usuarios, eventos, conexiones y demás entidades en una base de datos NoSQL para poder gestionar la información de la aplicación\. |
+| HU\-02 — Integración con base de datos: Como sistema, quiero conectarme de forma segura a la base de datos para poder guardar, consultar y actualizar la información de la aplicación\. |
+| HU\-03 — Búsqueda eficiente de eventos: Como usuario, quiero consultar eventos según mi ubicación y tipo de cuenta para obtener resultados relevantes de manera eficiente\. |
+| HU\-04 — Registro: Como usuario, quiero crear una cuenta para poder utilizar las funcionalidades de la aplicación\. |
+| HU\-05 — Inicio de sesión: Como usuario registrado, quiero iniciar sesión para acceder a mi cuenta\. |
+| HU\-06 — Inicio de sesión con Google: Como usuario, quiero iniciar sesión utilizando mi cuenta de Google para acceder de manera sencilla a la aplicación\. |
+| HU\-07 — Recuperación de contraseña: Como usuario, quiero recuperar mi contraseña para poder volver a acceder a mi cuenta si la olvido\. |
+| HU\-08 — Cierre de sesión: Como usuario, quiero cerrar sesión para proteger el acceso a mi cuenta\. |
+| HU\-09 — Gestión de cuenta: Como usuario, quiero modificar la información de mi cuenta para mantener mis datos actualizados\. |
+| HU\-10 — Verificación de identidad: Como usuario, quiero verificar mi correo electrónico o teléfono para demostrar que mi cuenta es válida y poder crear eventos públicos\. |
+| HU\-11 — Visualización del mapa: Como usuario, quiero visualizar un mapa dentro de la aplicación para consultar eventos cercanos\. |
+| HU\-12 — Ubicación actual: Como usuario, quiero que la aplicación detecte mi ubicación actual para encontrar eventos cercanos\. |
+| HU\-13 — Actualización de ubicación: Como usuario, quiero que mi ubicación se actualice mientras utilizo la aplicación para consultar información relevante de mi zona\. |
+| HU\-14 — Buscar usuarios: Como usuario, quiero buscar otros usuarios para encontrar personas que conozco\. |
+| HU\-15 — Solicitud de amistad: Como usuario, quiero enviar una solicitud de amistad a otro usuario para establecer una conexión\. |
+| HU\-16 — Gestionar solicitud: Como usuario, quiero aceptar o rechazar solicitudes de amistad para decidir con quién establecer una conexión\. |
+| HU\-17 — Ver actividad de amigos: Como usuario, quiero consultar los eventos a los que asisten mis amigos para conocer sus planes\. |
+| HU\-18 — Eliminar contacto: Como usuario, quiero eliminar una conexión para dejar de tenerla como amigo\. |
+| HU\-19 — Bloquear usuario: Como usuario, quiero bloquear a otro usuario para evitar interacciones no deseadas\. |
+| HU\-20 — Invitar amigos: Como usuario, quiero invitar amigos específicos a un evento privado para compartir el evento únicamente con las personas que seleccione\. |
+| HU\-21 — Crear evento: Como usuario, quiero crear un evento para compartir una actividad con otras personas\. |
+| HU\-22 — Crear evento privado: Como usuario, quiero crear un evento privado para limitar su acceso a personas invitadas\. |
+| HU\-23 — Crear evento público: Como usuario verificado/pro, quiero crear un evento público para que otros usuarios puedan encontrarlo\. |
+| HU\-24 — Programar evento: Como usuario, quiero establecer la fecha y hora de un evento para que los asistentes sepan cuándo se realizará\. |
+| HU\-25 — Ubicar evento: Como usuario, quiero establecer la ubicación de un evento para que pueda visualizarse en el mapa\. |
+| HU\-26 — Editar evento: Como anfitrión, quiero editar un evento que he creado para corregir o actualizar su información\. |
+| HU\-27 — Cancelar evento: Como anfitrión, quiero cancelar un evento para informar a los participantes que ya no se realizará\. |
+| HU\-28 — Definir aforo: Como anfitrión, quiero establecer un número máximo de asistentes para controlar la capacidad del evento\. |
+| HU\-29 — Categorizar evento: Como anfitrión, quiero asignar una categoría a mi evento para facilitar que los usuarios encuentren actividades de su interés\. |
+| HU\-30 — Reservar/asistir a evento: Como usuario, quiero reservar un cupo en un evento para confirmar mi asistencia\. |
+| HU\-31 — Ver detalle del evento: Como usuario, quiero consultar el título, descripción, fecha, aforo y anfitrión de un evento para decidir si quiero asistir\. |
+| HU\-32 — Consultar eventos en el mapa: Como usuario, quiero visualizar los eventos disponibles en el mapa para encontrar actividades cercanas\. |
+| HU\-33 — Filtrar eventos por fecha: Como usuario, quiero filtrar eventos por fecha para encontrar actividades que pueda realizar\. |
+| HU\-34 — Filtrar por categoría: Como usuario, quiero filtrar eventos por categoría para encontrar actividades de mi interés\. |
+| HU\-35 — Filtrar por distancia: Como usuario, quiero filtrar eventos por distancia para encontrar actividades cercanas\. |
+| HU\-36 — Filtrar por tipo: Como usuario, quiero filtrar eventos según sean públicos o privados para encontrar los que pueda consultar\. |
+| HU\-37 — Agrupar eventos cercanos: Como usuario, quiero que los eventos cercanos se agrupen visualmente cuando existen muchos en una misma zona para poder navegar fácilmente por el mapa\. |
+| HU\-38 — Identificar tipos de evento: Como usuario, quiero diferenciar visualmente los eventos públicos, privados y de pago por difusión para entender rápidamente sus características\. |
+| HU\-39 — Eventos de amigos: Como usuario, quiero visualizar en el mapa los eventos creados por mis amigos para conocer sus actividades\. |
+| HU\-40 — Notificaciones de grupos: Como usuario, quiero recibir alertas sobre novedades de mis grupos para mantenerme informado\. |
+| HU\-41 — Solicitud de amistad: Como usuario, quiero recibir una notificación cuando alguien me envíe una solicitud de amistad\. |
+| HU\-42 — Recordatorio de evento: Como usuario, quiero recibir un recordatorio antes de un evento al que asistiré para no olvidarlo\. |
+| HU\-43 — Novedades de eventos: Como usuario, quiero recibir notificaciones cuando cambie información relevante de un evento al que estoy inscrito\. |
+| HU\-44 — Panel de usuario: Como usuario, quiero consultar mis eventos privados, cuentas asociadas y usuarios enlazados desde un panel personal\. |
+| HU\-45 — Cuentas asociadas Pro: Como usuario Pro, quiero asociar múltiples cuentas para gestionar diferentes perfiles o cuentas\. |
+| HU\-46 — Eventos públicos Pro: Como usuario Pro, quiero crear eventos públicos para que cualquier usuario pueda encontrarlos y participar\. |
+| HU\-47 — Gestión administrativa: Como administrador, quiero gestionar los permisos de la aplicación para controlar las funciones administrativas\. |
+| HU\-48 — Moderación de eventos: Como administrador, quiero revisar eventos reportados para determinar si cumplen las reglas de la plataforma\. |
+| HU\-49 — Gestión de usuarios: Como administrador, quiero suspender o bloquear usuarios que incumplan las normas de la plataforma\. |
+| HU\-50 — Métricas: Como administrador, quiero consultar métricas de uso para conocer el comportamiento general de la aplicación\. |
+| HU\-51 — Gestión de pagos: Como administrador, quiero consultar y gestionar la información relacionada con los pagos para controlar las operaciones comerciales\. |
+| HU\-52 — Preguntas frecuentes: Como usuario, quiero consultar preguntas frecuentes mediante un chatbot para resolver dudas comunes\. |
+| HU\-53 — Solicitar ayuda: Como usuario, quiero preguntarle al chatbot sobre el funcionamiento de la aplicación para recibir asistencia\. |
+| HU\-54 — Contactar soporte: Como usuario, quiero comunicarme con soporte cuando mi problema no pueda ser resuelto por el chatbot\. |
+| HU\-55 — Escalamiento a soporte humano: Como usuario, quiero enviar mi problema a un agente humano mediante un formulario o correo cuando el chatbot no pueda ayudarme\. |
+| HU\-56 — Configurar perfil: Como usuario, quiero configurar mi nombre, foto y preferencias de privacidad para personalizar mi perfil\. |
+| HU\-57 — Historial de eventos: Como usuario, quiero consultar los eventos que he creado o a los que he asistido para revisar mi actividad\. |
+| HU\-58 — Privacidad del perfil: Como usuario, quiero elegir quién puede ver mi perfil para controlar la visibilidad de mi información\. |
+| HU\-59 — Eliminar cuenta: Como usuario, quiero eliminar mi cuenta y mis datos asociados para ejercer control sobre mi información personal\. |
+| HU\-60 — Valorar evento: Como asistente, quiero valorar un evento después de participar para compartir mi experiencia\. |
+| HU\-61 — Comentar evento: Como asistente, quiero dejar un comentario después de un evento para compartir mi opinión con otros usuarios |
