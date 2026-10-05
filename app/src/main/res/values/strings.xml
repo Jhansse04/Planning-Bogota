@@ -1,3 +1,63 @@
 <resources>
     <string name="app_name">PlanningBGT</string>
+
+    <!-- Comunes -->
+    <string name="common_back">Regresar</string>
+    <string name="common_cancel">Cancelar</string>
+    <string name="common_ok">Aceptar</string>
+
+    <!-- Perfil -->
+    <string name="profile_my_panel">Mi Panel</string>
+
+    <!-- Panel de usuario (HU-44) -->
+    <string name="panel_title">Mi Panel</string>
+    <string name="panel_my_events">Mis eventos privados</string>
+    <string name="panel_linked_users">Usuarios enlazados</string>
+    <string name="panel_add_event">Agregar evento</string>
+    <string name="panel_empty_events">Aún no tienes eventos privados</string>
+    <string name="panel_empty_events_hint">Crea tu primer evento y comparte el plan con tus amigos.</string>
+    <string name="panel_empty_users">Aún no tienes conexiones</string>
+    <string name="panel_empty_users_hint">Cuando aceptes solicitudes de amistad, aparecerán aquí.</string>
+    <string name="panel_error_events">No pudimos cargar tus eventos.</string>
+    <string name="panel_error_users">No pudimos cargar tus usuarios enlazados.</string>
+    <string name="panel_retry">Reintentar</string>
+    <string name="panel_remove_event">Quitar evento</string>
+    <string name="panel_remove_message">Se quitará «%1$s» de tu panel. El evento no se borra y los demás seguirán viéndolo.</string>
+    <string name="panel_remove_confirm">Quitar</string>
+    <string name="panel_remove_failed">No pudimos quitar el evento. Intenta de nuevo.</string>
+    <string name="panel_capacity">Cupos: %1$d</string>
+
+    <!-- Crear evento -->
+    <string name="create_event_title">Crear evento</string>
+    <string name="create_event_field_title">Título</string>
+    <string name="create_event_field_description">Descripción</string>
+    <string name="create_event_field_capacity">Capacidad (cupos)</string>
+    <string name="create_event_select_date">Seleccionar fecha y hora</string>
+    <string name="create_event_select_time">Selecciona la hora</string>
+    <string name="create_event_category">Categoría</string>
+    <string name="create_event_location">Ubicación</string>
+    <string name="create_event_location_hint">Toca el mapa para elegir dónde será el evento.</string>
+    <string name="create_event_location_selected">Ubicación: %1$.5f, %2$.5f</string>
+    <string name="create_event_save">Guardar evento</string>
+    <string name="create_event_saving">Guardando...</string>
+    <string name="create_event_save_error">No pudimos guardar el evento. Intenta de nuevo.</string>
+
+    <!-- Errores de validación -->
+    <string name="error_required">Este campo es obligatorio</string>
+    <string name="error_too_long">Máximo %1$d caracteres</string>
+    <string name="error_invalid_number">Ingresa un número válido</string>
+    <string name="error_capacity_range">Debe estar entre %1$d y %2$d</string>
+    <string name="error_date_past">La fecha y hora deben ser futuras</string>
+    <string name="error_location_required">Selecciona una ubicación en el mapa</string>
+    <string name="error_category_required">Selecciona una categoría</string>
+
+    <!-- Categorías -->
+    <string name="category_fiesta">Fiesta</string>
+    <string name="category_deporte">Deporte</string>
+    <string name="category_cultural">Cultural</string>
+    <string name="category_academico">Académico</string>
+    <string name="category_gastronomia">Gastronomía</string>
+    <string name="category_musica">Música</string>
+    <string name="category_otro">Otro</string>
+    <string name="category_none">Sin categoría</string>
 </resources>
