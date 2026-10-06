@@ -4,12 +4,19 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -20,6 +27,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.repository.FirestoreRepository
+import com.example.planningbgt.ui.components.ReserveButton
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Icon
@@ -63,6 +71,7 @@ fun MapScreen() {
     val lifecycleOwner = LocalLifecycleOwner.current
     val firestoreRepository = remember { FirestoreRepository() }
     val events = remember { mutableStateListOf<Event>() }
+    var selectedEvent by remember { mutableStateOf<Event?>(null) }
 
     // Inicializar MapLibre
     MapLibre.getInstance(context)
@@ -116,6 +125,14 @@ fun MapScreen() {
                 // Agregar marcadores iniciales
                 addMarkers(13.0)
 
+                map.setOnMarkerClickListener { marker ->
+                    selectedEvent = events.firstOrNull {
+                        it.location.latitude == marker.position.latitude &&
+                            it.location.longitude == marker.position.longitude
+                    }
+                    true
+                }
+
                 // Escalar pines cuando cambia el zoom
                 map.addOnCameraMoveListener {
                     addMarkers(map.cameraPosition.zoom)
@@ -146,6 +163,23 @@ fun MapScreen() {
         AndroidView(
             factory = { mapView },
             modifier = Modifier.fillMaxSize()
+        )
+    }
+
+    selectedEvent?.let { ev ->
+        AlertDialog(
+            onDismissRequest = { selectedEvent = null },
+            title = { Text(ev.title) },
+            text = {
+                Column {
+                    Text(ev.description)
+                    Text("Fecha: ${ev.date.toDate()}")
+                    ReserveButton(ev)
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedEvent = null }) { Text("Cerrar") }
+            }
         )
     }
 }
