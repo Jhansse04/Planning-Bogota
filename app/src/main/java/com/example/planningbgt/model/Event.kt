@@ -14,5 +14,6 @@ data class Event(
     val hostId: String = "",
     val eventType: String = "public", // public, private, paid_promotion
     val attendees: List<String> = emptyList(),
+    val hiddenBy: List<String> = emptyList(), // (soft delete)
     val createdAt: Timestamp = Timestamp.now()
 )
