@@ -6,9 +6,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.tasks.await
 
+class ProfileSaveException : Exception("No se pudo guardar el perfil del usuario")
+
 class AuthRepository {
     private val auth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val firestoreRepo = FirestoreRepository()
+    private val firestoreRepo : FirestoreRepository = FirestoreRepository()
+
+    private companion object {
+        val REGISTER_ACCOUNT_TYPES = setOf("normal", "pro")
+    }
 
     val currentUser: FirebaseUser? get() = auth.currentUser
 
@@ -38,7 +44,13 @@ class AuthRepository {
         }
     }
 
-    suspend fun register(email: String, pass: String, name: String = ""): Result<FirebaseUser> {
+    suspend fun register(email: String, pass: String, name: String = "",  accountType: String = "normal"): Result<FirebaseUser> {
+         if (accountType !in REGISTER_ACCOUNT_TYPES) {
+            return Result.failure(
+                IllegalArgumentException("Tipo de cuenta no permitido en el registro: $accountType")
+            )
+        }
+        
         return try {
             val result = auth.createUserWithEmailAndPassword(email.trim(), pass).await()
             val firebaseUser = result.user ?: throw Exception("No se pudo crear el usuario")
@@ -47,13 +59,25 @@ class AuthRepository {
                 uid = firebaseUser.uid,
                 name = if (name.isNotBlank()) name else email.substringBefore("@"),
                 email = email.trim(),
+                accountType = accountType,
                 createdAt = Timestamp.now()
             )
-            // Guardar en la colección 'users' de Firestore
-            firestoreRepo.saveUser(newUser)
+
+            val saved = firestoreRepo.saveUser(newUser)
+            if (!saved) {
+                // Rollback (best effort): sin esto, reintentar el registro falla con
+                // "correo ya en uso" y quedaría una cuenta sin perfil.
+                try {
+                    firebaseUser.delete().await()
+                } catch (_: Exception) {
+                    auth.signOut() // que al menos no quede la sesión abierta sin perfil
+                }
+                throw ProfileSaveException()
+            }
 
             Result.success(firebaseUser)
-        } catch (e: Exception) {
+        } 
+        catch (e: Exception) {
             Result.failure(e)
         }
     }

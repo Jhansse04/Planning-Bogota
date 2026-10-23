@@ -16,5 +16,6 @@ data class Event(
     val attendees: List<String> = emptyList(),
     val hiddenBy: List<String> = emptyList(), // (soft delete)
     val createdAt: Timestamp = Timestamp.now(),
-    val status: String = "active" // active, cancelled
+    val status: String = "active", // active, cancelled
+    val reservationEnabled: Boolean = false // true solo en eventos públicos 
 )

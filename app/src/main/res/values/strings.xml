@@ -5,11 +5,13 @@
     <string name="common_back">Regresar</string>
     <string name="common_cancel">Cancelar</string>
     <string name="common_ok">Aceptar</string>
-
+    <!-- Registro Pro  -->
+    <string name="pro_register_checkbox">Crear cuenta Pro</string>
+    <string name="pro_register_failed_profile">No pudimos guardar tu perfil. Intenta registrarte de nuevo.</string>
     <!-- Perfil -->
     <string name="profile_my_panel">Mi Panel</string>
 
-    <!-- Panel de usuario (HU-44) -->
+    <!-- Panel de usuario  -->
     <string name="panel_title">Mi Panel</string>
     <string name="panel_my_events">Mis eventos privados</string>
     <string name="panel_linked_users">Usuarios enlazados</string>
@@ -41,12 +43,25 @@
     <string name="create_event_save">Guardar evento</string>
     <string name="create_event_saving">Guardando...</string>
     <string name="create_event_save_error">No pudimos guardar el evento. Intenta de nuevo.</string>
+    
 
+    <!--Eventos pro-->
+    <string name="create_event_error_not_pro">Solo las cuentas Pro pueden crear eventos públicos.</string>
+    <string name="create_event_type_label">Tipo de evento</string>
+    <string name="create_event_type_private">Privado</string>
+    <string name="create_event_type_public">Público</string>
+    <string name="create_event_public_warning">Los eventos públicos no se pueden volver privados.</string>
+    <string name="create_event_public_confirm_title">¿Crear evento público?</string>
+    <string name="create_event_public_confirm_message">Una vez creado, este evento no se podrá volver privado. Será visible para todos los usuarios.</string>
+    <string name="create_event_public_confirm_action">Crear evento público</string>
+    <string name="create_event_capacity_error_min">La capacidad mínima es %1$d.</string>
+    <string name="create_event_capacity_error_max_private">La capacidad máxima para eventos privados es %1$d.</string>
+    <string name="create_event_capacity_error_max_public">La capacidad máxima para eventos públicos es %1$d.</string>
+    
     <!-- Errores de validación -->
     <string name="error_required">Este campo es obligatorio</string>
     <string name="error_too_long">Máximo %1$d caracteres</string>
     <string name="error_invalid_number">Ingresa un número válido</string>
-    <string name="error_capacity_range">Debe estar entre %1$d y %2$d</string>
     <string name="error_date_past">La fecha y hora deben ser futuras</string>
     <string name="error_location_required">Selecciona una ubicación en el mapa</string>
     <string name="error_category_required">Selecciona una categoría</string>

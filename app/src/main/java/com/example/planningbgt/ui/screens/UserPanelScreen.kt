@@ -21,6 +21,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Public
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,6 +60,7 @@ import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.PrimaryYellowDark
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
+import com.example.planningbgt.util.EventFormValidator
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
@@ -330,7 +333,9 @@ private fun EventCard(event: Event, onRemoveClick: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                 Spacer(modifier = Modifier.height(4.dp))
+                EventTypeBadge(isPublic = event.eventType == EventFormValidator.TYPE_PUBLIC)
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = DateTimeUtils.formatDateTime(event.date.toDate().time),
                     style = MaterialTheme.typography.bodyMedium,
@@ -354,6 +359,36 @@ private fun EventCard(event: Event, onRemoveClick: () -> Unit) {
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EventTypeBadge(isPublic: Boolean) {
+    val container = if (isPublic) PrimaryYellow else MaterialTheme.colorScheme.surface
+    val content = if (isPublic) TextPrimary else MaterialTheme.colorScheme.onSurface
+
+    Row(
+        modifier = Modifier
+            .clip(CircleShape)
+            .background(container)
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = if (isPublic) Icons.Filled.Public else Icons.Filled.Lock,
+            contentDescription = null, // decorativo: el texto ya dice el tipo
+            modifier = Modifier.size(14.dp),
+            tint = content
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = stringResource(
+                if (isPublic) R.string.create_event_type_public else R.string.create_event_type_private
+            ),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.Medium,
+            color = content
+        )
     }
 }
 

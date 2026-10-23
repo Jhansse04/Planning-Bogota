@@ -1,6 +1,8 @@
 package com.example.planningbgt.util
 
-enum class FieldError { REQUIRED, TOO_LONG, INVALID_NUMBER, OUT_OF_RANGE, DATE_IN_PAST }
+enum class FieldError {
+    REQUIRED, TOO_LONG, INVALID_NUMBER, CAPACITY_TOO_LOW, CAPACITY_TOO_HIGH, DATE_IN_PAST
+}
 
 data class EventFormErrors(
     val title: FieldError? = null,
@@ -18,12 +20,30 @@ data class EventFormErrors(
 object EventFormValidator {
     const val TITLE_MAX_LENGTH = 80
     const val DESCRIPTION_MAX_LENGTH = 500
-    const val CAPACITY_MIN = 1
-    const val CAPACITY_MAX = 1000
+    const val CAPACITY_MIN = 2
+    const val CAPACITY_MAX = 30            // eventos privados
+    const val CAPACITY_MAX_PUBLIC = 500    // eventos públicos
+
+    const val TYPE_PRIVATE = "private"
+    const val TYPE_PUBLIC = "public"
 
     val categories = listOf(
         "fiesta", "deporte", "cultural", "academico", "gastronomia", "musica", "otro"
     )
+
+    /** Capacidad máxima según el tipo de evento. Cualquier valor distinto de "public" se trata como privado. */
+    fun maxCapacityFor(eventType: String): Int =
+        if (eventType == TYPE_PUBLIC) CAPACITY_MAX_PUBLIC else CAPACITY_MAX
+
+    /**
+     * Regla de negocio: un evento privado puede pasar a público, pero un público
+     * no puede volver a ser privado. (Se usará cuando exista la edición de eventos.)
+     */
+    fun canChangeEventType(from: String, to: String): Boolean = when {
+        from == to -> true
+        from == TYPE_PRIVATE && to == TYPE_PUBLIC -> true
+        else -> false
+    }
 
     fun validate(
         title: String,
@@ -32,11 +52,13 @@ object EventFormValidator {
         hasLocation: Boolean,
         capacityText: String,
         category: String?,
-        nowMillis: Long = System.currentTimeMillis()
+        nowMillis: Long = System.currentTimeMillis(),
+        eventType: String = TYPE_PRIVATE
     ): EventFormErrors {
         val trimmedTitle = title.trim()
         val trimmedDescription = description.trim()
         val trimmedCapacity = capacityText.trim()
+        val maxCapacity = maxCapacityFor(eventType)
 
         return EventFormErrors(
             title = when {
@@ -61,7 +83,8 @@ object EventFormValidator {
                 val value = trimmedCapacity.toIntOrNull()
                 when {
                     value == null -> FieldError.INVALID_NUMBER
-                    value < CAPACITY_MIN || value > CAPACITY_MAX -> FieldError.OUT_OF_RANGE
+                    value < CAPACITY_MIN -> FieldError.CAPACITY_TOO_LOW
+                    value > maxCapacity -> FieldError.CAPACITY_TOO_HIGH
                     else -> null
                 }
             },
