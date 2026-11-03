@@ -113,7 +113,8 @@ fun UserPanelScreen(
                 }
             }
         },
-        onRetry = { reloadKey++ }
+        onRetry = { reloadKey++ },
+        currentUid = uid
     )
 }
 
@@ -125,7 +126,8 @@ internal fun UserPanelContent(
     onBack: () -> Unit,
     onAddEvent: () -> Unit,
     onRemoveEvent: (Event) -> Unit,
-    onRetry: () -> Unit
+    onRetry: () -> Unit,
+    currentUid: String? = null
 ) {
     var eventToRemove by remember { mutableStateOf<Event?>(null) }
 
@@ -263,10 +265,24 @@ internal fun UserPanelContent(
     }
 
     eventToRemove?.let { event ->
+        val isHost = currentUid != null && event.hostId == currentUid
         AlertDialog(
             onDismissRequest = { eventToRemove = null },
-            title = { Text(stringResource(R.string.panel_remove_event)) },
-            text = { Text(stringResource(R.string.panel_remove_message, event.title)) },
+            title = {
+                Text(
+                    stringResource(
+                        if (isHost) R.string.panel_delete_event else R.string.panel_remove_event
+                    )
+                )
+            },
+            text = {
+                Text(
+                    stringResource(
+                        if (isHost) R.string.panel_delete_message else R.string.panel_remove_message,
+                        event.title
+                    )
+                )
+            },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -276,7 +292,9 @@ internal fun UserPanelContent(
                     modifier = Modifier.testTag("confirm_remove_button")
                 ) {
                     Text(
-                        text = stringResource(R.string.panel_remove_confirm),
+                        text = stringResource(
+                            if (isHost) R.string.panel_delete_confirm else R.string.panel_remove_confirm
+                        ),
                         color = MaterialTheme.colorScheme.error
                     )
                 }

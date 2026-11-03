@@ -1,12 +1,28 @@
 package com.example.planningbgt.repository
 
 import com.example.planningbgt.model.Event
+import com.example.planningbgt.util.EventJoinRules
+import com.example.planningbgt.util.JoinBlockReason
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 import java.util.Date
 
-class ReservationException(message: String) : Exception(message)
+open class ReservationException(message: String) : Exception(message)
+
+/** No se pudo reservar por una regla de negocio; [reason] dice cuál (la UI la traduce a su texto). */
+class JoinEventException(val reason: JoinBlockReason) :
+    ReservationException(joinMessage(reason))
+
+private fun joinMessage(reason: JoinBlockReason): String = when (reason) {
+    JoinBlockReason.NOT_PUBLIC -> "Solo se puede reservar en eventos públicos"
+    JoinBlockReason.RESERVATIONS_DISABLED -> "Este evento no acepta reservaciones"
+    JoinBlockReason.REMOVED -> "El evento ya no está disponible"
+    JoinBlockReason.EXPIRED -> "El evento ya pasó"
+    JoinBlockReason.IS_HOST -> "Eres el anfitrión de este evento"
+    JoinBlockReason.ALREADY_JOINED -> "Ya reservaste este evento"
+    JoinBlockReason.FULL -> "Evento lleno"
+}
 
 enum class ReserveButtonState { RESERVAR, RESERVADO, EVENTO_LLENO, NO_DISPONIBLE }
 
@@ -35,14 +51,8 @@ class ReservationRepository(
             val snap = tx.get(ref)
             val event = snap.toObject(Event::class.java)
                 ?: throw ReservationException("El evento no existe")
-            if ((snap.getString("status") ?: "active") == "cancelled")
-                throw ReservationException("El evento fue cancelado")
-            if (event.date.toDate().before(Date()))
-                throw ReservationException("El evento ya pasó")
-            if (event.attendees.contains(uid))
-                throw ReservationException("Ya reservaste este evento")
-            if (event.capacity > 0 && event.attendees.size >= event.capacity)
-                throw ReservationException("Evento lleno")
+            // HU-46b: público, reservationEnabled, no ser el anfitrión, vigencia y cupo
+            EventJoinRules.check(event, uid)?.let { throw JoinEventException(it) }
             tx.update(ref, "attendees", FieldValue.arrayUnion(uid))
             null
         }.await()

@@ -4,6 +4,9 @@ import android.util.Log
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.model.Friendship
 import com.example.planningbgt.model.User
+import com.example.planningbgt.util.EventFormValidator
+import com.example.planningbgt.util.EventJoinRules
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -93,7 +96,8 @@ class FirestoreRepository {
                 .mapNotNull { doc -> doc.toObject(Event::class.java)?.copy(eventId = doc.id) }
                 .distinctBy { it.eventId }
                 .filterNot { uid in it.hiddenBy }
-                .filter { it.date.toDate().time >= nowMillis }
+                .filterNot { it.hostId in it.hiddenBy } // el anfitrión lo eliminó
+                    .filter { it.date.toDate().time >= nowMillis }
                 .sortedBy { it.date }
 
             Result.success(events)
@@ -109,7 +113,8 @@ class FirestoreRepository {
                 eventType = "private",
                 hostId = hostUid,
                 hiddenBy = emptyList(),
-                reservationEnabled = false
+                reservationEnabled = false,
+                imageUrl = ""
             )
             val docRef = db.collection("events").add(toSave).await()
             Log.d("FirestoreRepository", "Evento privado creado: ${docRef.id}")
@@ -131,7 +136,112 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+    // ── Mapa y detalle (HU-46b) ──
 
+    /** Convierte documentos a eventos y descarta los vencidos, cancelados o eliminados por su anfitrión. */
+    private fun List<DocumentSnapshot>.toLiveEvents(): List<Event> {
+        val nowMillis = System.currentTimeMillis()
+        return mapNotNull { doc -> doc.toObject(Event::class.java)?.copy(eventId = doc.id) }
+            .filterNot { EventJoinRules.isRemoved(it) }
+            .filter { it.date.toDate().time >= nowMillis }
+    }
+
+    /** Eventos públicos vigentes de todos los usuarios. */
+    suspend fun getPublicEvents(): Result<List<Event>> {
+        return try {
+            val snapshot = db.collection("events")
+                .whereEqualTo("eventType", "public")
+                .get().await()
+            Result.success(snapshot.documents.toLiveEvents())
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error obteniendo eventos públicos: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Eventos privados vigentes que [uid] puede ver: los propios y los de sus cuentas
+     * enlazadas (amistad aceptada).
+     */
+    suspend fun getPrivateEventsForUser(uid: String): Result<List<Event>> {
+        return try {
+            // Si falla la lectura de amistades, al menos se muestran los propios.
+            val linkedIds = getAcceptedFriendships(uid).getOrNull().orEmpty()
+                .map { if (it.user1Id == uid) it.user2Id else it.user1Id }
+                .filter { it.isNotBlank() }
+            val hostIds = (listOf(uid) + linkedIds).distinct()
+
+            val docs = hostIds.chunked(30).flatMap { chunk ->
+                db.collection("events")
+                    .whereEqualTo("eventType", "private")
+                    .whereIn("hostId", chunk)
+                    .get().await()
+                    .documents
+            }
+            Result.success(docs.toLiveEvents().distinctBy { it.eventId })
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error obteniendo eventos privados: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** Un evento por id. Éxito con null = el documento no existe. */
+    suspend fun getEventById(eventId: String): Result<Event?> {
+        return try {
+            val doc = db.collection("events").document(eventId).get().await()
+            Result.success(doc.toObject(Event::class.java)?.copy(eventId = doc.id))
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error obteniendo evento $eventId: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /** "Avisar al anfitrión": registra que [uid] quiere más cupos (arrayUnion: sin duplicados). */
+    suspend fun requestMoreCapacity(eventId: String, uid: String): Result<Unit> {
+        return try {
+            db.collection("events").document(eventId)
+                .update("capacityRequests", FieldValue.arrayUnion(uid))
+                .await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error solicitando más cupos: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * El anfitrión amplía la capacidad de su evento público (solo hacia arriba, hasta 500).
+     * Limpia las solicitudes pendientes porque ya fueron atendidas.
+     */
+    suspend fun increaseCapacity(eventId: String, hostUid: String, newCapacity: Int): Result<Unit> {
+        return try {
+            val ref = db.collection("events").document(eventId)
+            db.runTransaction { tx ->
+                val event = tx.get(ref).toObject(Event::class.java)
+                    ?: throw IllegalStateException("El evento no existe")
+                if (event.hostId != hostUid)
+                    throw IllegalStateException("Solo el anfitrión puede ampliar la capacidad")
+                if (event.eventType != EventFormValidator.TYPE_PUBLIC)
+                    throw IllegalStateException("Solo se amplía la capacidad de eventos públicos")
+                if (newCapacity <= event.capacity ||
+                    newCapacity > EventFormValidator.CAPACITY_MAX_PUBLIC
+                ) throw IllegalArgumentException("Capacidad no válida: $newCapacity")
+
+                tx.update(
+                    ref,
+                    mapOf(
+                        "capacity" to newCapacity,
+                        "capacityRequests" to emptyList<String>()
+                    )
+                )
+                null
+            }.await()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error ampliando capacidad: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
     // ── Amistades ──
 
     suspend fun getAcceptedFriendships(uid: String): Result<List<Friendship>> {

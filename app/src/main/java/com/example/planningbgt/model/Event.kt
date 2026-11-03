@@ -17,5 +17,7 @@ data class Event(
     val hiddenBy: List<String> = emptyList(), // (soft delete)
     val createdAt: Timestamp = Timestamp.now(),
     val status: String = "active", // active, cancelled
-    val reservationEnabled: Boolean = false // true solo en eventos públicos 
+    val reservationEnabled: Boolean = false, // true solo en eventos públicos,
+    val capacityRequests: List<String> = emptyList(), //  más cupos (evento lleno)
+    val imageUrl: String = "" // foto del evento (URL, opcional, solo públicos) 
 )

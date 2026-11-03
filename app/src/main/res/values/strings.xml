@@ -13,10 +13,10 @@
 
     <!-- Panel de usuario  -->
     <string name="panel_title">Mi Panel</string>
-    <string name="panel_my_events">Mis eventos privados</string>
+    <string name="panel_my_events">Mis eventos</string>
     <string name="panel_linked_users">Usuarios enlazados</string>
     <string name="panel_add_event">Agregar evento</string>
-    <string name="panel_empty_events">Aún no tienes eventos privados</string>
+    <string name="panel_empty_events">Aún no tienes eventos </string>
     <string name="panel_empty_events_hint">Crea tu primer evento y comparte el plan con tus amigos.</string>
     <string name="panel_empty_users">Aún no tienes conexiones</string>
     <string name="panel_empty_users_hint">Cuando aceptes solicitudes de amistad, aparecerán aquí.</string>
@@ -28,6 +28,9 @@
     <string name="panel_remove_confirm">Quitar</string>
     <string name="panel_remove_failed">No pudimos quitar el evento. Intenta de nuevo.</string>
     <string name="panel_capacity">Cupos: %1$d</string>
+    <string name="panel_delete_event">Eliminar evento</string>
+    <string name="panel_delete_message">Se eliminará «%1$s» para todos: desaparecerá del mapa y de los paneles de quienes lo reservaron.</string>
+    <string name="panel_delete_confirm">Eliminar</string>
 
     <!-- Crear evento -->
     <string name="create_event_title">Crear evento</string>
@@ -75,4 +78,44 @@
     <string name="category_musica">Música</string>
     <string name="category_otro">Otro</string>
     <string name="category_none">Sin categoría</string>
+
+
+        <!-- Diálogo del evento en el mapa  -->
+    <string name="event_detail_photo">Foto del evento</string>
+    <string name="event_detail_close">Cerrar</string>
+    <string name="event_detail_spots">Cupos disponibles: %1$d de %2$d</string>
+    <string name="event_detail_reserve">Reservar cupo</string>
+    <string name="event_detail_cancel_reservation">Cancelar reserva</string>
+    <string name="event_detail_keep_reservation">Mantener reserva</string>
+    <string name="event_detail_cancel_title">¿Cancelar reserva?</string>
+    <string name="event_detail_cancel_message">Se liberará tu cupo en «%1$s».</string>
+    <string name="event_detail_full">Evento lleno</string>
+    <string name="event_detail_no_reservations">Este evento no acepta reservaciones</string>
+    <string name="event_detail_is_host">Eres el anfitrión de este evento</string>
+    <string name="event_detail_unavailable">Este evento ya no está disponible</string>
+    <string name="event_detail_not_public">Solo se puede reservar en eventos públicos</string>
+    <string name="event_detail_already_joined">Ya reservaste este evento</string>
+    <string name="event_detail_error_generic">No pudimos completar la acción. Intenta de nuevo.</string>
+    <string name="event_detail_photo_expand">Ampliar foto</string>
+    <string name="event_detail_photo_collapse">Reducir foto</string>
+        <!-- Foto del evento  -->
+    <string name="create_event_field_image">Foto del evento (opcional)</string>
+    <string name="create_event_field_image_hint">Enlace https de una imagen. Se verá en el detalle del evento.</string>
+    <string name="create_event_image_error">Escribe un enlace válido que empiece por https://</string>
+    <string name="create_event_image_preview">Vista previa de la foto</string>
+
+    <!-- Diálogo del evento: anfitrión, ubicación y acciones del host (HU-46b) -->
+    <string name="event_detail_host_label">Anfitrión</string>
+    <string name="event_detail_open_maps">Abrir en Google Maps</string>
+    <string name="event_detail_notify_host">Avisar al anfitrión</string>
+    <string name="event_detail_notified">Ya avisaste al anfitrión</string>
+    <string name="event_detail_requests">Personas que piden más cupos: %1$d</string>
+    <string name="event_detail_increase">Ampliar capacidad</string>
+    <string name="event_detail_increase_label">Nueva capacidad (actual: %1$d)</string>
+    <string name="event_detail_increase_hint">Entre %1$d y %2$d</string>
+    <string name="event_detail_delete">Eliminar evento</string>
+    <string name="event_detail_delete_title">¿Eliminar evento?</string>
+    <string name="event_detail_delete_message">«%1$s» desaparecerá del mapa y de los paneles de todos los usuarios.</string>
+    <string name="event_detail_delete_confirm">Eliminar</string>
+    <string name="event_detail_delete_keep">Conservar</string>
 </resources>
