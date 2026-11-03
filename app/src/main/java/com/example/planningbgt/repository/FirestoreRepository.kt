@@ -205,5 +205,30 @@ class FirestoreRepository {
             Result.failure(e)
         }
     }
+
+    // HU-17: eventos de un amigo (eventos creados + reservas, ordenados por fecha desc)
+    suspend fun getFriendEvents(friendUid: String): List<Event> {
+        return try {
+            val hosted = db.collection("events")
+                .whereEqualTo("hostId", friendUid)
+                .get().await()
+                .documents
+                .mapNotNull { it.toObject(Event::class.java)?.copy(eventId = it.id) }
+
+            val attending = db.collection("events")
+                .whereArrayContains("attendees", friendUid)
+                .get().await()
+                .documents
+                .mapNotNull { it.toObject(Event::class.java)?.copy(eventId = it.id) }
+                .filter { it.eventType != "private" || it.hostId == friendUid }
+
+            (hosted + attending)
+                .distinctBy { it.eventId }
+                .sortedByDescending { it.date }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error obteniendo eventos del amigo: ${e.message}", e)
+            emptyList()
+        }
+    }
 }
 
