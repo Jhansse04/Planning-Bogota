@@ -1,5 +1,6 @@
 package com.example.planningbgt.ui.screens
 
+
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
@@ -28,6 +29,7 @@ import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.repository.FirestoreRepository
 import com.example.planningbgt.ui.components.ReserveButton
+import com.google.firebase.auth.FirebaseAuth
 import org.maplibre.android.MapLibre
 import org.maplibre.android.annotations.IconFactory
 import org.maplibre.android.annotations.Icon
@@ -84,7 +86,7 @@ fun MapScreen() {
 
     // Cargar eventos de Firestore
     LaunchedEffect(Unit) {
-        val loaded = firestoreRepository.getEvents()
+        val loaded = firestoreRepository.getEvents(FirebaseAuth.getInstance().currentUser?.uid)
         events.clear()
         events.addAll(loaded)
     }

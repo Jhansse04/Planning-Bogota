@@ -17,6 +17,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -27,6 +29,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SelectableDates
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -54,6 +59,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.repository.FirestoreRepository
+import com.example.planningbgt.repository.ProAccountRequiredException
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
@@ -73,6 +79,11 @@ import org.maplibre.android.maps.Style
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Date
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.font.FontWeight
 
 private const val MAP_STYLE_URI = "https://tiles.openfreemap.org/styles/liberty"
 private const val BOGOTA_LAT = 4.6097
@@ -97,14 +108,25 @@ fun CreateEventScreen(
     var latitude by rememberSaveable { mutableStateOf<Double?>(null) }
     var longitude by rememberSaveable { mutableStateOf<Double?>(null) }
     var showErrors by rememberSaveable { mutableStateOf(false) }
+    var eventType by rememberSaveable { mutableStateOf(EventFormValidator.TYPE_PRIVATE) }
+    var isPro by rememberSaveable { mutableStateOf(false) }
 
     var isSaving by remember { mutableStateOf(false) }
-    var saveFailed by remember { mutableStateOf(false) }
+    var saveErrorRes by remember { mutableStateOf<Int?>(null) }
+    var showPublicConfirm by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
     var pendingDateUtcMillis by remember { mutableStateOf<Long?>(null) }
 
     BackHandler(onBack = onBack)
+
+     LaunchedEffect(uid) {
+        if (uid != null) {
+            isPro = repo.getUser(uid)?.accountType == "pro"
+        }
+    }
+
+    val effectiveType = if (isPro) eventType else EventFormValidator.TYPE_PRIVATE
 
     val errors = EventFormValidator.validate(
         title = title,
@@ -112,8 +134,49 @@ fun CreateEventScreen(
         dateMillis = dateMillis,
         hasLocation = latitude != null && longitude != null,
         capacityText = capacityText,
-        category = category
+        category = category,
+        eventType = effectiveType
     )
+
+    val submit: () -> Unit = submit@{
+        val millis = dateMillis
+        val eventLat = latitude
+        val eventLng = longitude
+        val eventCategory = category
+        if (errors.hasErrors || isSaving || uid == null ||
+            millis == null || eventLat == null || eventLng == null || eventCategory == null
+        ) return@submit
+
+        isSaving = true
+        val event = Event(
+            title = title.trim(),
+            description = description.trim(),
+            date = Timestamp(Date(millis)),
+            location = GeoPoint(eventLat, eventLng),
+            capacity = capacityText.trim().toInt(),
+            category = eventCategory,
+            hostId = uid
+        )
+        scope.launch {
+            val result = if (effectiveType == EventFormValidator.TYPE_PUBLIC) {
+                repo.createPublicEvent(event, uid)
+            } else {
+                repo.createPrivateEvent(event, uid)
+            }
+            result.fold(
+                onSuccess = { onEventCreated() },
+                onFailure = { error ->
+                    if (error is ProAccountRequiredException) {
+                        isPro = false // ya no es Pro: oculta el selector
+                        saveErrorRes = R.string.create_event_error_not_pro
+                    } else {
+                        saveErrorRes = R.string.create_event_save_error
+                    }
+                    isSaving = false
+                }
+            )
+        }
+    }
 
     Scaffold { innerPadding ->
         Column(
@@ -128,6 +191,57 @@ fun CreateEventScreen(
                 title = stringResource(R.string.create_event_title),
                 onBack = onBack
             )
+
+            if (isPro) {
+                Text(
+                    text = stringResource(R.string.create_event_type_label),
+                    style = MaterialTheme.typography.titleSmall
+                )
+                val typeOptions = listOf(
+                    EventFormValidator.TYPE_PRIVATE to R.string.create_event_type_private,
+                    EventFormValidator.TYPE_PUBLIC to R.string.create_event_type_public
+                )
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                    typeOptions.forEachIndexed { index, (type, labelRes) ->
+                        SegmentedButton(
+                            selected = eventType == type,
+                            onClick = { eventType = type },
+                            shape = SegmentedButtonDefaults.itemShape(
+                                index = index,
+                                count = typeOptions.size),
+                            colors = SegmentedButtonDefaults.colors(
+                                activeContainerColor = PrimaryYellow,
+                                activeContentColor = TextPrimary
+                            )
+                        ) {
+                            Text(stringResource(labelRes))
+                        }
+                    }
+                }
+                if (effectiveType == EventFormValidator.TYPE_PUBLIC) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = PrimaryYellow.copy(alpha = 0.2f)
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Warning,
+                                contentDescription = null // decorativo: el texto ya lo dice
+                            )
+                            Text(
+                                text = stringResource(R.string.create_event_public_warning),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+                }
+            }
 
             // Título
             OutlinedTextField(
@@ -183,7 +297,7 @@ fun CreateEventScreen(
                 isError = showErrors && errors.capacity != null,
                 supportingText = {
                     val e = errors.capacity
-                    if (showErrors && e != null) Text(fieldErrorText(e))
+                    if (showErrors && e != null) Text(fieldErrorText(e,eventType = effectiveType))
                 },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 singleLine = true,
@@ -246,42 +360,21 @@ fun CreateEventScreen(
                 ErrorLine(stringResource(R.string.error_location_required))
             }
 
-            if (saveFailed) {
-                ErrorLine(stringResource(R.string.create_event_save_error))
-            }
+                        saveErrorRes?.let { ErrorLine(stringResource(it)) }
 
             Button(
                 onClick = {
                     showErrors = true
-                    saveFailed = false
-                    val millis = dateMillis
-                    val eventLat = latitude
-                    val eventLng = longitude
-                    val eventCategory = category
-                    if (!errors.hasErrors && !isSaving && uid != null &&
-                        millis != null && eventLat != null && eventLng != null &&
-                        eventCategory != null
-                    ) {
-                        isSaving = true
-                        val event = Event(
-                            title = title.trim(),
-                            description = description.trim(),
-                            date = Timestamp(Date(millis)),
-                            location = GeoPoint(eventLat, eventLng),
-                            capacity = capacityText.trim().toInt(),
-                            category = eventCategory,
-                            hostId = uid
-                        )
-                        scope.launch {
-                            repo.createPrivateEvent(event, uid).fold(
-                                onSuccess = { onEventCreated() },
-                                onFailure = {
-                                    saveFailed = true
-                                    isSaving = false
-                                }
-                            )
+                    saveErrorRes = null
+                    if (!errors.hasErrors && !isSaving && uid != null) {
+                            // Los públicos piden confirmación (son irreversibles)
+                        if (effectiveType == EventFormValidator.TYPE_PUBLIC) {
+                            showPublicConfirm = true
+                        } else {
+                            submit()
                         }
                     }
+             
                 },
                 enabled = !isSaving,
                 modifier = Modifier.fillMaxWidth(),
@@ -297,6 +390,41 @@ fun CreateEventScreen(
                 )
             }
         }
+    }
+
+// ── Confirmación de evento público (irreversible) ──
+    if (showPublicConfirm) {
+        AlertDialog(
+            onDismissRequest = { showPublicConfirm = false },
+            title = { Text(stringResource(R.string.create_event_public_confirm_title)) },
+            text = { Text(stringResource(R.string.create_event_public_confirm_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showPublicConfirm = false
+                        submit()
+                    },
+                    colors = ButtonDefaults.textButtonColors(
+                       contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(
+                        text = stringResource(R.string.create_event_public_confirm_action),
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPublicConfirm = false },
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                ) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
+        )
     }
 
     // ── Diálogo de fecha (no permite días pasados) ──
@@ -461,14 +589,21 @@ private fun ErrorLine(text: String) {
 }
 
 @Composable
-private fun fieldErrorText(error: FieldError, maxLength: Int = 0): String = when (error) {
+private fun fieldErrorText(error: FieldError,maxLength: Int = 0,eventType: String = EventFormValidator.TYPE_PRIVATE): String = when (error) {
     FieldError.REQUIRED -> stringResource(R.string.error_required)
     FieldError.TOO_LONG -> stringResource(R.string.error_too_long, maxLength)
     FieldError.INVALID_NUMBER -> stringResource(R.string.error_invalid_number)
-    FieldError.OUT_OF_RANGE -> stringResource(
-        R.string.error_capacity_range,
-        EventFormValidator.CAPACITY_MIN,
-        EventFormValidator.CAPACITY_MAX
+    FieldError.CAPACITY_TOO_LOW -> stringResource(
+        R.string.create_event_capacity_error_min,
+        EventFormValidator.CAPACITY_MIN
+    )
+    FieldError.CAPACITY_TOO_HIGH -> stringResource(
+        if (eventType == EventFormValidator.TYPE_PUBLIC) {
+            R.string.create_event_capacity_error_max_public
+        } else {
+            R.string.create_event_capacity_error_max_private
+        },
+        EventFormValidator.maxCapacityFor(eventType)
     )
     FieldError.DATE_IN_PAST -> stringResource(R.string.error_date_past)
 }

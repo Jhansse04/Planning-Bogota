@@ -9,8 +9,11 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.tasks.await
 
+class ProAccountRequiredException :
+    Exception("Solo las cuentas Pro pueden crear eventos públicos")
+
 class FirestoreRepository {
-    private val db = FirebaseFirestore.getInstance()
+    private val db : FirebaseFirestore = FirebaseFirestore.getInstance()
 
     // ── Usuarios ──
 
@@ -48,12 +51,18 @@ class FirestoreRepository {
 
     // ── Eventos ──
 
-    suspend fun getEvents(): List<Event> {
+    suspend fun getEvents(viewerUid: String? = null): List<Event> {
         return try {
             val snapshot = db.collection("events").get().await()
-            snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Event::class.java)?.copy(eventId = doc.id)
-            }
+            val nowMillis = System.currentTimeMillis()
+            snapshot.documents
+                .mapNotNull { doc -> doc.toObject(Event::class.java)?.copy(eventId = doc.id) }
+                .filter { event ->
+                    val isVisible = event.eventType != "private" ||
+                        (viewerUid != null &&
+                            (event.hostId == viewerUid || viewerUid in event.attendees))
+                    isVisible && event.date.toDate().time >= nowMillis
+                }
         } catch (e: Exception) {
             Log.e("FirestoreRepository", "Error obteniendo eventos: ${e.message}", e)
             emptyList()
@@ -73,19 +82,18 @@ class FirestoreRepository {
 
     suspend fun getPanelEvents(uid: String): Result<List<Event>> {
         return try {
-            val hosted = db.collection("events")
-                .whereEqualTo("hostId", uid)
-                .whereEqualTo("eventType", "private")
-                .get().await()
+            val hosted = db.collection("events").whereEqualTo("hostId", uid).get().await()
             val invited = db.collection("events")
                 .whereArrayContains("attendees", uid)
                 .whereEqualTo("eventType", "private")
                 .get().await()
 
+            val nowMillis = System.currentTimeMillis()
             val events = (hosted.documents + invited.documents)
                 .mapNotNull { doc -> doc.toObject(Event::class.java)?.copy(eventId = doc.id) }
                 .distinctBy { it.eventId }
                 .filterNot { uid in it.hiddenBy }
+                .filter { it.date.toDate().time >= nowMillis }
                 .sortedBy { it.date }
 
             Result.success(events)
@@ -100,7 +108,8 @@ class FirestoreRepository {
             val toSave = event.copy(
                 eventType = "private",
                 hostId = hostUid,
-                hiddenBy = emptyList()
+                hiddenBy = emptyList(),
+                reservationEnabled = false
             )
             val docRef = db.collection("events").add(toSave).await()
             Log.d("FirestoreRepository", "Evento privado creado: ${docRef.id}")
@@ -171,6 +180,29 @@ class FirestoreRepository {
                 .get().await()
                 .documents
                 .mapNotNull { it.toObject(User::class.java) }
+        }
+    }
+
+        suspend fun createPublicEvent(event: Event, hostUid: String): Result<String> {
+        return try {
+            val host = getUser(hostUid)
+            if (host?.accountType != "pro") throw ProAccountRequiredException()
+
+            val toSave = event.copy(
+                eventType = "public",
+                hostId = hostUid,
+                hiddenBy = emptyList(),
+                reservationEnabled = true
+            )
+            val docRef = db.collection("events").add(toSave).await()
+            Log.d("FirestoreRepository", "Evento público creado: ${docRef.id}")
+            Result.success(docRef.id)
+        } catch (e: ProAccountRequiredException) {
+            Log.w("FirestoreRepository", "Intento de crear evento público sin cuenta Pro: $hostUid")
+            Result.failure(e)
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error creando evento público: ${e.message}", e)
+            Result.failure(e)
         }
     }
 }
