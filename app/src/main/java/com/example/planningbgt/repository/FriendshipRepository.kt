@@ -123,6 +123,20 @@ class FriendshipRepository(
         val b = col.whereEqualTo("user2Id", myUid).whereEqualTo("status", "accepted").get().await()
         return a.toObjects(Friendship::class.java) + b.toObjects(Friendship::class.java)
     }
+
+    // HU-18: eliminar una amistad aceptada
+    suspend fun removeFriend(myUid: String, otherUid: String) {
+        val ref = col.document(pairId(myUid, otherUid))
+        db.runTransaction { tx ->
+            val f = tx.get(ref).toObject(Friendship::class.java)
+                ?: throw IllegalStateException("La amistad no existe")
+            if (f.status != "accepted" || (f.user1Id != myUid && f.user2Id != myUid)) {
+                throw IllegalStateException("No puedes eliminar esta amistad")
+            }
+            tx.delete(ref)
+            null
+        }.await()
+    }
 }
 
 class FriendLimitException(message: String) : Exception(message)
