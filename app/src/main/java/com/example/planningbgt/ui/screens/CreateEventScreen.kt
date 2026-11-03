@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -48,6 +50,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
@@ -56,6 +61,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import coil.compose.AsyncImage
 import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.repository.FirestoreRepository
@@ -103,6 +109,7 @@ fun CreateEventScreen(
     var title by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
     var capacityText by rememberSaveable { mutableStateOf("") }
+    var imageUrlText by rememberSaveable { mutableStateOf("") }
     var category by rememberSaveable { mutableStateOf<String?>(null) }
     var dateMillis by rememberSaveable { mutableStateOf<Long?>(null) }
     var latitude by rememberSaveable { mutableStateOf<Double?>(null) }
@@ -135,7 +142,8 @@ fun CreateEventScreen(
         hasLocation = latitude != null && longitude != null,
         capacityText = capacityText,
         category = category,
-        eventType = effectiveType
+        eventType = effectiveType,
+        imageUrl = imageUrlText
     )
 
     val submit: () -> Unit = submit@{
@@ -155,7 +163,8 @@ fun CreateEventScreen(
             location = GeoPoint(eventLat, eventLng),
             capacity = capacityText.trim().toInt(),
             category = eventCategory,
-            hostId = uid
+            hostId = uid,
+            imageUrl = if (effectiveType == EventFormValidator.TYPE_PUBLIC) imageUrlText.trim() else ""
         )
         scope.launch {
             val result = if (effectiveType == EventFormValidator.TYPE_PUBLIC) {
@@ -274,7 +283,48 @@ fun CreateEventScreen(
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth()
             )
-
+            // Foto del evento (opcional, solo públicos): enlace + vista previa a la derecha
+            if (effectiveType == EventFormValidator.TYPE_PUBLIC) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    OutlinedTextField(
+                        value = imageUrlText,
+                        onValueChange = { imageUrlText = it },
+                        label = { Text(stringResource(R.string.create_event_field_image)) },
+                        isError = showErrors && errors.imageUrl != null,
+                        supportingText = {
+                            val e = errors.imageUrl
+                            Text(
+                                if (showErrors && e != null) {
+                                    fieldErrorText(e, EventFormValidator.IMAGE_URL_MAX_LENGTH)
+                                } else {
+                                    stringResource(R.string.create_event_field_image_hint)
+                                }
+                            )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    // La vista previa solo aparece si el enlace pasa la validación
+                    if (imageUrlText.isNotBlank() && errors.imageUrl == null) {
+                        val neutral = ColorPainter(MaterialTheme.colorScheme.surfaceVariant)
+                        AsyncImage(
+                            model = imageUrlText.trim(),
+                            contentDescription = stringResource(R.string.create_event_image_preview),
+                            placeholder = neutral,
+                            error = neutral,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(64.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                    }
+                }
+            }
             // Fecha y hora
             OutlinedButton(
                 onClick = { showDatePicker = true },
@@ -606,6 +656,7 @@ private fun fieldErrorText(error: FieldError,maxLength: Int = 0,eventType: Strin
         EventFormValidator.maxCapacityFor(eventType)
     )
     FieldError.DATE_IN_PAST -> stringResource(R.string.error_date_past)
+    FieldError.INVALID_URL -> stringResource(R.string.create_event_image_error)
 }
 
 /** Etiqueta visible de una categoría guardada en Firestore (también la usa el panel). */

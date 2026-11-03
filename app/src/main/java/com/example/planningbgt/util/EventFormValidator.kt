@@ -1,11 +1,12 @@
 package com.example.planningbgt.util
 
 enum class FieldError {
-    REQUIRED, TOO_LONG, INVALID_NUMBER, CAPACITY_TOO_LOW, CAPACITY_TOO_HIGH, DATE_IN_PAST
+    REQUIRED, TOO_LONG, INVALID_NUMBER, CAPACITY_TOO_LOW, CAPACITY_TOO_HIGH, DATE_IN_PAST,INVALID_URL
 }
 
 data class EventFormErrors(
     val title: FieldError? = null,
+    val imageUrl: FieldError? = null,
     val description: FieldError? = null,
     val date: FieldError? = null,
     val location: FieldError? = null,
@@ -13,7 +14,7 @@ data class EventFormErrors(
     val category: FieldError? = null
 ) {
     val hasErrors: Boolean
-        get() = listOf(title, description, date, location, capacity, category).any { it != null }
+        get() = listOf(title, description, date, location, capacity, category,imageUrl).any { it != null }
 }
 
 
@@ -23,6 +24,7 @@ object EventFormValidator {
     const val CAPACITY_MIN = 2
     const val CAPACITY_MAX = 30            // eventos privados
     const val CAPACITY_MAX_PUBLIC = 500    // eventos públicos
+    const val IMAGE_URL_MAX_LENGTH = 500
 
     const val TYPE_PRIVATE = "private"
     const val TYPE_PUBLIC = "public"
@@ -44,6 +46,16 @@ object EventFormValidator {
         from == TYPE_PRIVATE && to == TYPE_PUBLIC -> true
         else -> false
     }
+        /** La foto es opcional y solo existe en eventos públicos. Debe ser un enlace https válido. */
+    private fun imageUrlError(imageUrl: String, eventType: String): FieldError? {
+        val url = imageUrl.trim()
+        if (eventType != TYPE_PUBLIC || url.isEmpty()) return null
+        if (url.length > IMAGE_URL_MAX_LENGTH) return FieldError.TOO_LONG
+        val isValid = url.startsWith("https://") &&
+            url.none { it.isWhitespace() } &&
+            runCatching { java.net.URI(url).host }.getOrNull()?.isNotBlank() == true
+        return if (isValid) null else FieldError.INVALID_URL
+    }
 
     fun validate(
         title: String,
@@ -53,7 +65,9 @@ object EventFormValidator {
         capacityText: String,
         category: String?,
         nowMillis: Long = System.currentTimeMillis(),
-        eventType: String = TYPE_PRIVATE
+        eventType: String = TYPE_PRIVATE,
+         imageUrl: String = ""
+
     ): EventFormErrors {
         val trimmedTitle = title.trim()
         val trimmedDescription = description.trim()
@@ -88,7 +102,7 @@ object EventFormValidator {
                     else -> null
                 }
             },
-            category = if (category != null && category in categories) null else FieldError.REQUIRED
+            category = if (category != null && category in categories) null else FieldError.REQUIRED,imageUrl = imageUrlError(imageUrl, eventType)
         )
     }
 }
