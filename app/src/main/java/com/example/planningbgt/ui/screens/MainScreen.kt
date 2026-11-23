@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -37,6 +38,7 @@ fun MainScreen(
 
     val navItems = listOf(
         BottomNavItem("Mapa", Icons.Filled.Map),
+        BottomNavItem("Eventos", Icons.Filled.Event),
         BottomNavItem("Social", Icons.Filled.People),
         BottomNavItem("Perfil", Icons.Filled.Person)
     )
@@ -76,8 +78,9 @@ fun MainScreen(
         ) {
             when (selectedTab) {
                 0 -> MapScreen()
-                1 -> SocialScreen()
-                2 -> ProfileScreen(onLogout = onLogout)
+                1 -> EventsScreen()
+                2 -> SocialScreen()
+                3 -> ProfileScreen(onLogout = onLogout)
             }
         }
     }
