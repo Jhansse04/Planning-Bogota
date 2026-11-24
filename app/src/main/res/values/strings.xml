@@ -118,4 +118,40 @@
     <string name="event_detail_delete_message">«%1$s» desaparecerá del mapa y de los paneles de todos los usuarios.</string>
     <string name="event_detail_delete_confirm">Eliminar</string>
     <string name="event_detail_delete_keep">Conservar</string>
+
+        <!-- HU-12: ubicación actual y eventos cercanos -->
+    <string name="location_rationale_title">Usar tu ubicación</string>
+    <string name="location_rationale_message">Usamos tu ubicación solo mientras usas la app, para mostrarte los eventos más cercanos. No la guardamos ni la compartimos con otros usuarios.</string>
+    <string name="location_rationale_confirm">Continuar</string>
+    <string name="location_rationale_dismiss">Ahora no</string>
+    <string name="location_my_location">Mi ubicación</string>
+    <string name="location_loading">Obteniendo tu ubicación…</string>
+    <string name="location_refresh">Actualizar ubicación</string>
+    <string name="location_retry">Reintentar</string>
+    <string name="location_use_bogota_center">Usar el centro de Bogotá</string>
+    <string name="location_permission_needed_title">Necesitamos tu permiso</string>
+    <string name="location_permission_needed_message">Permite el acceso a tu ubicación para ver los eventos que tienes cerca.</string>
+    <string name="location_permission_allow">Permitir ubicación</string>
+    <string name="location_denied_title">Permiso de ubicación denegado</string>
+    <string name="location_denied_message">Sin tu ubicación no podemos mostrarte los eventos cercanos. Puedes intentarlo de nuevo o usar el centro de Bogotá.</string>
+    <string name="location_denied_permanent_message">El permiso está bloqueado. Para activarlo, ve a Ajustes → Permisos → Ubicación y permite el acceso a Planning Bogotá.</string>
+    <string name="location_open_settings">Abrir ajustes</string>
+    <string name="location_gps_off_title">La ubicación está desactivada</string>
+    <string name="location_gps_off_message">Activa la ubicación de tu teléfono para encontrar eventos cerca de ti.</string>
+    <string name="location_open_location_settings">Activar ubicación</string>
+    <string name="location_timeout_title">No pudimos obtener tu ubicación</string>
+    <string name="location_timeout_message">Tardó demasiado. Intenta de nuevo, de preferencia en un lugar abierto.</string>
+    <string name="location_unavailable_title">Ubicación no disponible</string>
+    <string name="location_unavailable_message">Tu dispositivo no puede darnos su ubicación en este momento. Intenta de nuevo más tarde.</string>
+
+    <string name="nearby_button">Cerca de mí</string>
+    <string name="nearby_title">Cerca de mí</string>
+    <string name="nearby_empty">No hay eventos a menos de %1$d km.</string>
+    <string name="nearby_fallback_hint">Mostrando eventos cerca del centro de Bogotá, no de tu ubicación.</string>
+    <string name="nearby_item_description">%1$s, a %2$s, %3$s</string>
+    <string name="nearby_item_click_label">Ver detalle del evento</string>
+    <plurals name="nearby_results_count">
+        <item quantity="one">%1$d evento a menos de %2$d km</item>
+        <item quantity="other">%1$d eventos a menos de %2$d km</item>
+    </plurals>
 </resources>

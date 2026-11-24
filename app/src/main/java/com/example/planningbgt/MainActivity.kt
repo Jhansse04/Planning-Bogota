@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.example.planningbgt.repository.AuthRepository
+import com.example.planningbgt.location.LocationService
 import com.example.planningbgt.ui.screens.LoginScreen
 import com.example.planningbgt.ui.screens.MainScreen
 import com.example.planningbgt.ui.theme.PlanningBGTTheme
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
                         MainScreen(
                             onLogout = {
                                 authRepository.logout()
+                                LocationService.clearSharedCache()
                                 currentScreen = "login"
                             }
                         )
