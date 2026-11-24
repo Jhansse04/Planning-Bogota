@@ -20,11 +20,18 @@ sealed interface UserPanelState {
 /**
  * Carga eventos y usuarios enlazados en paralelo. Cada sección falla por separado.
  * Vive fuera del composable para poder testearla con MockK.
+ * [delegated] (HU-45): panel de una cuenta gestionada, solo con lo que esa cuenta delega.
  */
-suspend fun loadUserPanel(repo: FirestoreRepository, uid: String): UserPanelState.Loaded =
+suspend fun loadUserPanel(
+    repo: FirestoreRepository,
+    uid: String,
+    delegated: Boolean = false
+): UserPanelState.Loaded =
     coroutineScope {
-        val eventsDeferred = async { repo.getPanelEvents(uid) }
-        val usersDeferred = async { repo.getLinkedUsers(uid) }
+        val eventsDeferred = async { repo.getPanelEvents(uid, onlyHosted = delegated) }
+        val usersDeferred = async {
+            if (delegated) Result.success(emptyList()) else repo.getLinkedUsers(uid)
+        }
         val events = eventsDeferred.await()
         val users = usersDeferred.await()
 

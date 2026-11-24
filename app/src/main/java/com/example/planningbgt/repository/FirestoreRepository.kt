@@ -83,16 +83,22 @@ class FirestoreRepository {
         }
     }
 
-    suspend fun getPanelEvents(uid: String): Result<List<Event>> {
+    /** [onlyHosted] (HU-45): sin los privados de terceros a los que [uid] fue invitado. */
+    suspend fun getPanelEvents(uid: String, onlyHosted: Boolean = false): Result<List<Event>> {
         return try {
             val hosted = db.collection("events").whereEqualTo("hostId", uid).get().await()
-            val invited = db.collection("events")
-                .whereArrayContains("attendees", uid)
-                .whereEqualTo("eventType", "private")
-                .get().await()
+            val invited = if (onlyHosted) {
+                emptyList()
+            } else {
+                db.collection("events")
+                    .whereArrayContains("attendees", uid)
+                    .whereEqualTo("eventType", "private")
+                    .get().await()
+                    .documents
+            }
 
             val nowMillis = System.currentTimeMillis()
-            val events = (hosted.documents + invited.documents)
+            val events = (hosted.documents + invited)
                 .mapNotNull { doc -> doc.toObject(Event::class.java)?.copy(eventId = doc.id) }
                 .distinctBy { it.eventId }
                 .filterNot { uid in it.hiddenBy }
@@ -161,14 +167,19 @@ class FirestoreRepository {
 
     /**
      * Eventos privados vigentes que [uid] puede ver: los propios y los de sus cuentas
-     * enlazadas (amistad aceptada).
+     * enlazadas (amistad aceptada). [onlyOwn] (HU-45): solo los propios, porque los amigos de
+     * una cuenta gestionada no aceptaron que otra persona vea los suyos.
      */
-    suspend fun getPrivateEventsForUser(uid: String): Result<List<Event>> {
+    suspend fun getPrivateEventsForUser(uid: String, onlyOwn: Boolean = false): Result<List<Event>> {
         return try {
             // Si falla la lectura de amistades, al menos se muestran los propios.
-            val linkedIds = getAcceptedFriendships(uid).getOrNull().orEmpty()
-                .map { if (it.user1Id == uid) it.user2Id else it.user1Id }
-                .filter { it.isNotBlank() }
+            val linkedIds = if (onlyOwn) {
+                emptyList()
+            } else {
+                getAcceptedFriendships(uid).getOrNull().orEmpty()
+                    .map { if (it.user1Id == uid) it.user2Id else it.user1Id }
+                    .filter { it.isNotBlank() }
+            }
             val hostIds = (listOf(uid) + linkedIds).distinct()
 
             val docs = hostIds.chunked(30).flatMap { chunk ->

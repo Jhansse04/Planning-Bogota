@@ -154,4 +154,97 @@
         <item quantity="one">%1$d evento a menos de %2$d km</item>
         <item quantity="other">%1$d eventos a menos de %2$d km</item>
     </plurals>
+
+    <!-- HU-45: cuentas asociadas Pro -->
+    <string name="pro_feature_title">Función Pro</string>
+    <string name="pro_feature_hint">Tu cuenta actual no incluye esta función. Necesitas una cuenta Pro para usarla.</string>
+    <string name="accounts_title">Cuentas asociadas</string>
+    <string name="accounts_section">Mis cuentas</string>
+    <string name="accounts_add">Asociar cuenta</string>
+    <string name="accounts_count">%1$d de %2$d cuentas</string>
+    <string name="accounts_count_unlimited">Cuentas asociadas: %1$d</string>
+    <string name="accounts_limit_reached">Llegaste al límite de %1$d cuentas. Quita una para asociar otra.</string>
+    <string name="accounts_loading">Cargando cuentas asociadas</string>
+    <string name="accounts_load_error">No pudimos cargar tus cuentas asociadas.</string>
+    <string name="accounts_empty">Aún no tienes cuentas asociadas</string>
+    <string name="accounts_empty_hint">Invita a una cuenta existente o crea una nueva para gestionarla desde aquí.</string>
+    <string name="accounts_not_pro_message">Con Pro puedes asociar varias cuentas y gestionarlas sin cerrar sesión.</string>
+    <string name="accounts_own">Tu cuenta principal</string>
+    <string name="accounts_active">Cuenta activa</string>
+    <string name="accounts_switch">Gestionar</string>
+    <string name="accounts_switching">Cambiando…</string>
+    <string name="accounts_unknown_name">Cuenta sin nombre</string>
+    <string name="accounts_status_active">Asociada</string>
+    <string name="accounts_status_pending">Pendiente de confirmar</string>
+    <string name="accounts_status_expired">Invitación vencida</string>
+    <string name="accounts_invitations">Invitaciones recibidas</string>
+    <string name="accounts_managers">Quién gestiona tu cuenta</string>
+
+    <string name="accounts_role_manage">Solo gestionar</string>
+    <string name="accounts_role_manage_hint">Editar nombre y foto, y administrar eventos que ya existen.</string>
+    <string name="accounts_role_act">Actuar en su nombre</string>
+    <string name="accounts_role_act_hint">Además, crear eventos y reservar cupos como esa cuenta.</string>
+    <string name="accounts_role_cannot_reserve">Tu permiso en esta cuenta no incluye reservar.</string>
+
+    <string name="accounts_mode_invite">Invitar</string>
+    <string name="accounts_mode_create">Crear nueva</string>
+    <string name="accounts_invite_hint">La persona debe aceptar desde su propia cuenta, en Perfil → Cuentas asociadas. La invitación vence en 7 días.</string>
+    <string name="accounts_create_hint">Se crea una cuenta normal y queda asociada de una vez. Guarda la contraseña: no la almacenamos.</string>
+    <string name="accounts_field_name">Nombre</string>
+    <string name="accounts_field_email">Correo electrónico</string>
+    <string name="accounts_field_password">Contraseña</string>
+    <string name="accounts_field_label">Etiqueta (opcional)</string>
+    <string name="accounts_field_role">¿Qué podrás hacer?</string>
+    <string name="accounts_submit_invite">Enviar invitación</string>
+    <string name="accounts_submit_create">Crear y asociar</string>
+    <string name="accounts_saving">Guardando…</string>
+
+    <string name="accounts_accept">Aceptar</string>
+    <string name="accounts_accept_title">¿Aceptar invitación?</string>
+    <string name="accounts_accept_message_manage">%1$s podrá ver tu panel, editar tu nombre y foto, y administrar los eventos que ya creaste. No verá tus amistades ni cambiará tu privacidad. Puedes revocarlo cuando quieras.</string>
+    <string name="accounts_accept_message_act">%1$s podrá ver tu panel, editar tu nombre y foto, administrar tus eventos, crear eventos y reservar cupos en tu nombre. No verá tus amistades ni cambiará tu privacidad. Puedes revocarlo cuando quieras.</string>
+    <string name="accounts_decline">Rechazar</string>
+    <string name="accounts_decline_title">¿Rechazar invitación?</string>
+    <string name="accounts_decline_message">%1$s no podrá gestionar tu cuenta.</string>
+    <string name="accounts_cancel_invitation">Cancelar invitación</string>
+    <string name="accounts_cancel_title">¿Cancelar invitación?</string>
+    <string name="accounts_cancel_message">%1$s ya no podrá aceptarla.</string>
+    <string name="accounts_unlink">Desasociar</string>
+    <string name="accounts_unlink_title">¿Desasociar cuenta?</string>
+    <string name="accounts_unlink_message">Dejarás de gestionar a %1$s. Esa cuenta y sus eventos no se borran.</string>
+    <string name="accounts_revoke">Revocar acceso</string>
+    <string name="accounts_revoke_title">¿Revocar acceso?</string>
+    <string name="accounts_revoke_message">%1$s dejará de gestionar tu cuenta de inmediato.</string>
+
+    <string name="accounts_invited_ok">Invitación enviada.</string>
+    <string name="accounts_created_ok">Cuenta creada y asociada.</string>
+    <string name="accounts_accepted_ok">Invitación aceptada.</string>
+    <string name="accounts_declined_ok">Invitación rechazada.</string>
+    <string name="accounts_cancelled_ok">Invitación cancelada.</string>
+    <string name="accounts_unlinked_ok">Cuenta desasociada.</string>
+    <string name="accounts_revoked_ok">Acceso revocado.</string>
+
+    <string name="accounts_banner_managing">Gestionando a %1$s</string>
+    <string name="accounts_banner_return">Volver a mi cuenta</string>
+    <string name="accounts_social_unavailable_title">Social no está disponible</string>
+    <string name="accounts_social_unavailable_message">Las amistades de la cuenta que gestionas son privadas. Vuelve a tu cuenta para ver las tuyas.</string>
+    <string name="accounts_access_lost_title">Ya no gestionas esa cuenta</string>
+    <string name="accounts_access_lost_message">El vínculo ya no está disponible. Volviste a tu cuenta principal.</string>
+    <string name="accounts_profile_save_error">No pudimos guardar los cambios. Intenta de nuevo.</string>
+
+    <string name="accounts_error_not_pro">Solo las cuentas Pro pueden asociar cuentas.</string>
+    <string name="accounts_error_email">Escribe un correo válido.</string>
+    <string name="accounts_error_role">Elige qué podrás hacer con la cuenta.</string>
+    <string name="accounts_error_name">Escribe un nombre de máximo %1$d caracteres.</string>
+    <string name="accounts_error_password">La contraseña debe tener al menos %1$d caracteres.</string>
+    <string name="accounts_error_email_in_use">Ya existe una cuenta con ese correo. Invítala en vez de crearla.</string>
+    <string name="accounts_error_not_found">No encontramos una cuenta con ese correo.</string>
+    <string name="accounts_error_self">No puedes asociar tu propia cuenta.</string>
+    <string name="accounts_error_duplicate">Esa cuenta ya está asociada o tiene una invitación pendiente.</string>
+    <string name="accounts_error_limit">Llegaste al límite de cuentas asociadas de tu plan.</string>
+    <string name="accounts_error_expired">La invitación venció. Pide que te envíen otra.</string>
+    <string name="accounts_error_link_gone">Ese vínculo ya no existe.</string>
+    <string name="accounts_error_not_allowed">No tienes permiso para hacer esto.</string>
+    <string name="accounts_error_network">Sin conexión. Revisa tu internet e intenta de nuevo.</string>
+    <string name="accounts_error_generic">No pudimos completar la acción. Intenta de nuevo.</string>
 </resources>

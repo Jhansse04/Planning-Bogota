@@ -85,13 +85,13 @@ import com.example.planningbgt.model.User
 import com.example.planningbgt.repository.FirestoreRepository
 import com.example.planningbgt.repository.JoinEventException
 import com.example.planningbgt.repository.ReservationRepository
+import com.example.planningbgt.ui.components.LocalActiveAccount
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
 import com.example.planningbgt.util.EventFormValidator
 import com.example.planningbgt.util.EventJoinRules
 import com.example.planningbgt.util.JoinBlockReason
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -166,6 +166,7 @@ fun MapScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val firestoreRepository = remember { FirestoreRepository() }
+    val account = LocalActiveAccount.current
     val events = remember { mutableStateListOf<Event>() }
     var eventsVersion by remember { mutableIntStateOf(0) }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
@@ -220,13 +221,15 @@ fun MapScreen() {
     }
 
     // Cargar eventos al entrar: públicos + privados visibles (propios y de cuentas enlazadas)
-    LaunchedEffect(Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
+    LaunchedEffect(account?.uid) {
+        val uid = account?.uid
         val (publicEvents, privateEvents) = coroutineScope {
             val pub = async { firestoreRepository.getPublicEvents().getOrDefault(emptyList()) }
             val priv = async {
                 if (uid != null) {
-                    firestoreRepository.getPrivateEventsForUser(uid).getOrDefault(emptyList())
+                    firestoreRepository
+                        .getPrivateEventsForUser(uid, onlyOwn = account.isDelegated)
+                        .getOrDefault(emptyList())
                 } else {
                     emptyList()
                 }
@@ -423,7 +426,9 @@ private fun EventInfoDialog(
     onEventDeleted: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val uid = FirebaseAuth.getInstance().currentUser?.uid
+    val account = LocalActiveAccount.current
+    val uid = account?.uid
+    val canAct = account?.canAct ?: true // HU-45: rol "solo gestionar" no reserva
     val reservationRepo = remember { ReservationRepository() }
     val firestoreRepo = remember { FirestoreRepository() }
     val scope = rememberCoroutineScope()
@@ -650,6 +655,12 @@ private fun EventInfoDialog(
 
                 // Zona de acción
                 when {
+                    !canAct && !isHost && isPublic -> Text(
+                        text = stringResource(R.string.accounts_role_cannot_reserve),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     hasReservation -> OutlinedButton(
                         onClick = { showCancelConfirm = true },
                         enabled = !isWorking,
