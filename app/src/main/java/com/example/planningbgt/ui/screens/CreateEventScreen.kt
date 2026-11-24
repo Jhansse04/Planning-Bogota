@@ -66,13 +66,13 @@ import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.repository.FirestoreRepository
 import com.example.planningbgt.repository.ProAccountRequiredException
+import com.example.planningbgt.ui.components.LocalActiveAccount
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
 import com.example.planningbgt.util.EventFormValidator
 import com.example.planningbgt.util.FieldError
 import com.google.firebase.Timestamp
-import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.GeoPoint
 import kotlinx.coroutines.launch
 import org.maplibre.android.MapLibre
@@ -102,7 +102,7 @@ fun CreateEventScreen(
     onEventCreated: () -> Unit
 ) {
     val repo = remember { FirestoreRepository() }
-    val uid = FirebaseAuth.getInstance().currentUser?.uid
+    val uid = LocalActiveAccount.current?.uid // anfitrión: la cuenta que se gestiona (HU-45)
     val scope = rememberCoroutineScope()
 
     // rememberSaveable: no se pierde lo escrito al rotar la pantalla

@@ -56,12 +56,12 @@ import com.example.planningbgt.R
 import com.example.planningbgt.model.Event
 import com.example.planningbgt.model.User
 import com.example.planningbgt.repository.FirestoreRepository
+import com.example.planningbgt.ui.components.LocalActiveAccount
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.PrimaryYellowDark
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
 import com.example.planningbgt.util.EventFormValidator
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.launch
 
 
@@ -71,7 +71,8 @@ fun UserPanelScreen(
     onAddEvent: () -> Unit
 ) {
     val repo = remember { FirestoreRepository() }
-    val uid = FirebaseAuth.getInstance().currentUser?.uid
+    val account = LocalActiveAccount.current
+    val uid = account?.uid
     val scope = rememberCoroutineScope()
 
     var state by remember { mutableStateOf<UserPanelState>(UserPanelState.Loading) }
@@ -87,7 +88,7 @@ fun UserPanelScreen(
         state = if (uid == null) {
             UserPanelState.Loaded(eventsFailed = true, usersFailed = true)
         } else {
-            loadUserPanel(repo, uid)
+            loadUserPanel(repo, uid, delegated = account.isDelegated)
         }
     }
 
@@ -114,7 +115,9 @@ fun UserPanelScreen(
             }
         },
         onRetry = { reloadKey++ },
-        currentUid = uid
+        currentUid = uid,
+        canAddEvent = account?.canAct ?: true,
+        showLinkedUsers = account?.isDelegated != true
     )
 }
 
@@ -127,7 +130,9 @@ internal fun UserPanelContent(
     onAddEvent: () -> Unit,
     onRemoveEvent: (Event) -> Unit,
     onRetry: () -> Unit,
-    currentUid: String? = null
+    currentUid: String? = null,
+    canAddEvent: Boolean = true,
+    showLinkedUsers: Boolean = true
 ) {
     var eventToRemove by remember { mutableStateOf<Event?>(null) }
 
@@ -162,21 +167,23 @@ internal fun UserPanelContent(
                         modifier = Modifier.weight(1f)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = onAddEvent,
-                        modifier = Modifier.testTag("add_event_button"),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = PrimaryYellow,
-                            contentColor = TextPrimary
-                        )
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.panel_add_event))
+                    if (canAddEvent) {
+                        Button(
+                            onClick = onAddEvent,
+                            modifier = Modifier.testTag("add_event_button"),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = PrimaryYellow,
+                                contentColor = TextPrimary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.panel_add_event))
+                        }
                     }
                 }
             }
@@ -230,8 +237,8 @@ internal fun UserPanelContent(
                         }
                     }
 
-                    // ── Usuarios enlazados ──
-                    item(key = "users_title") {
+                    // ── Usuarios enlazados (nunca los de una cuenta gestionada, HU-45) ──
+                    if (showLinkedUsers) item(key = "users_title") {
                         Text(
                             text = stringResource(R.string.panel_linked_users),
                             style = MaterialTheme.typography.titleMedium,
@@ -240,7 +247,7 @@ internal fun UserPanelContent(
                         )
                     }
 
-                    when {
+                    if (showLinkedUsers) when {
                         state.usersFailed -> item(key = "users_error") {
                             SectionError(
                                 message = stringResource(R.string.panel_error_users),

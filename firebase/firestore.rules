@@ -1,0 +1,314 @@
+rules_version = '2';
+
+// Reglas de Firestore de Planning Bogotá.
+//
+// OJO: antes de HU-45 las reglas solo existían en la consola de Firebase. Este archivo trae las
+// de HU-45 (cuentas asociadas) más una base para users/events/friendships deducida de lo que hace
+// la app hoy. Antes de desplegar, compárenlo con lo publicado en la consola: desplegar REEMPLAZA
+// todo. Ver docs/HU-45-cuentas-asociadas.md.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Utilidades ──
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMe(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function affected() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    // Gating por plan (equivale a PlanPolicy.kt)
+    function isPro(uid) {
+      return get(/databases/$(database)/documents/users/$(uid)).data.accountType == 'pro';
+    }
+
+    // ── HU-45: delegación entre cuentas asociadas ──
+
+    function linkPath(primaryUid, linkedUid) {
+      return /databases/$(database)/documents/accountLinks/$(primaryUid + '_' + linkedUid);
+    }
+
+    // Quien inició sesión es Pro y tiene un vínculo ACTIVO con esa cuenta y uno de esos roles.
+    function isDelegateOf(uid, roles) {
+      let link = get(linkPath(request.auth.uid, uid)).data;
+      return isPro(request.auth.uid) && link.status == 'active' && link.role in roles;
+    }
+
+    function canManage(uid) {
+      return isMe(uid) || (signedIn() && isDelegateOf(uid, ['manage', 'act']));
+    }
+
+    function canAct(uid) {
+      return isMe(uid) || (signedIn() && isDelegateOf(uid, ['act']));
+    }
+
+    // Límite configurable sin publicar otra versión: config/accountLinks.maxLinkedAccounts.
+    // Por defecto 10 (AccountLinkRules.DEFAULT_MAX_LINKED); -1 = ilimitado.
+    function maxLinkedAccounts() {
+      let path = /databases/$(database)/documents/config/accountLinks;
+      return exists(path) ? get(path).data.get('maxLinkedAccounts', 10) : 10;
+    }
+
+    // ── Usuarios ──
+
+    match /users/{uid} {
+      allow read: if signedIn();
+
+      // El correo debe ser el de la sesión: si no, alguien podría hacerse pasar por otro y
+      // quedarse con las invitaciones que le lleguen.
+      allow create: if isMe(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.accountType in ['normal', 'pro']
+        && request.resource.data.email.lower() == request.auth.token.email.lower();
+
+      // El plan, el correo y el uid no se cambian desde la app: sin esto, cualquiera se
+      // volvería Pro y se saltaría el gating. Un delegado solo edita nombre y foto.
+      allow update: if (isMe(uid) && !affected().hasAny(['uid', 'email', 'accountType']))
+        || (affected().hasOnly(['name', 'profilePictureUrl']) && canManage(uid));
+
+      allow delete: if false;
+    }
+
+    // ── Eventos ──
+
+    match /events/{eventId} {
+      allow read: if signedIn();
+
+      allow create: if canAct(request.resource.data.hostId)
+        && (request.resource.data.eventType == 'private'
+          || (request.resource.data.eventType == 'public' && isPro(request.resource.data.hostId)));
+
+      // Uids que entran o salen de una lista del evento
+      function changedMembers(field) {
+        let before = resource.data.get(field, []);
+        let after = request.resource.data.get(field, []);
+        return after.removeAll(before).concat(before.removeAll(after));
+      }
+
+      function hostUpdate() {
+        return resource.data.hostId == request.auth.uid
+          && !affected().hasAny(['hostId', 'eventType']);
+      }
+
+      // Cada quien se agrega o se quita a sí mismo, o a una cuenta en cuyo nombre actúa
+      function memberUpdate() {
+        return (affected().hasOnly(['attendees'])
+            && changedMembers('attendees').size() == 1
+            && canAct(changedMembers('attendees')[0]))
+          || (affected().hasOnly(['capacityRequests'])
+            && changedMembers('capacityRequests').size() == 1
+            && canAct(changedMembers('capacityRequests')[0]))
+          || (affected().hasOnly(['hiddenBy'])
+            && changedMembers('hiddenBy').size() == 1
+            && canManage(changedMembers('hiddenBy')[0]));
+      }
+
+      function delegatedCapacityUpdate() {
+        return affected().hasOnly(['capacity', 'capacityRequests'])
+          && request.resource.data.capacity > resource.data.capacity
+          && request.resource.data.capacity <= 500
+          && request.resource.data.capacityRequests.size() == 0
+          && canManage(resource.data.hostId);
+      }
+
+      allow update: if signedIn()
+        && (affected().size() == 0 || hostUpdate() || memberUpdate() || delegatedCapacityUpdate());
+
+      allow delete: if false; // la app elimina con hiddenBy (soft delete)
+    }
+
+    // ── Amistades (nunca se delegan) ──
+
+    match /friendships/{friendshipId} {
+      allow get: if signedIn()
+        && (resource == null || request.auth.uid in [resource.data.user1Id, resource.data.user2Id]);
+      allow list: if signedIn()
+        && (resource.data.user1Id == request.auth.uid || resource.data.user2Id == request.auth.uid);
+      allow create: if isMe(request.resource.data.user1Id)
+        && request.resource.data.user2Id != request.auth.uid
+        && request.resource.data.status == 'pending';
+      allow update: if isMe(resource.data.user2Id)
+        && affected().hasOnly(['status'])
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'accepted';
+      allow delete: if isMe(resource.data.user1Id) || isMe(resource.data.user2Id);
+    }
+
+    // ── Configuración: solo se cambia desde la consola ──
+
+    match /config/{document} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    // ── HU-45: vínculos ──
+
+    match /accountLinks/{linkId} {
+      function isParticipant() {
+        return request.auth.uid in [resource.data.primaryUid, resource.data.linkedUid];
+      }
+
+      function index(primaryUid) {
+        return /databases/$(database)/documents/accountLinkIndex/$(primaryUid);
+      }
+
+      // El id contiene los dos uids: deja comprobar si el vínculo existe, pero solo el propio
+      allow get: if signedIn()
+        && (resource == null ? request.auth.uid in linkId.split('_') : isParticipant());
+
+      allow list: if signedIn()
+        && (resource.data.primaryUid == request.auth.uid || resource.data.linkedUid == request.auth.uid);
+
+      // Invitar: solo un Pro, nunca a sí mismo, siempre "pending" y ocupando cupo en el índice
+      allow create: if isMe(request.resource.data.primaryUid)
+        && request.resource.data.keys().hasOnly(['linkId', 'primaryUid', 'linkedUid', 'linkedEmail',
+          'role', 'label', 'status', 'createdAt', 'updatedAt', 'respondedAt'])
+        && request.resource.data.linkedUid is string
+        && request.resource.data.linkedUid != request.auth.uid
+        && linkId == request.auth.uid + '_' + request.resource.data.linkedUid
+        && request.resource.data.linkId == linkId
+        && request.resource.data.linkedEmail is string
+        && request.resource.data.linkedEmail.size() <= 254
+        && request.resource.data.role in ['manage', 'act']
+        && request.resource.data.label is string
+        && request.resource.data.label.size() <= 40
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.get('respondedAt', null) == null
+        && isPro(request.auth.uid)
+        && getAfter(index(request.auth.uid)).data.linkedUids.hasAny([request.resource.data.linkedUid]);
+
+      // Aceptar: solo el titular de la cuenta invitada, y solo antes de que venza
+      allow update: if isMe(resource.data.linkedUid)
+        && affected().hasOnly(['status', 'updatedAt', 'respondedAt'])
+        && resource.data.status == 'pending'
+        && request.resource.data.status == 'active'
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.respondedAt == request.time
+        && request.time < resource.data.createdAt + duration.value(7, 'd');
+
+      // Cancelar, rechazar o desasociar: cualquiera de las dos partes, liberando el cupo
+      allow delete: if signedIn() && isParticipant()
+        && !getAfter(index(resource.data.primaryUid)).data.linkedUids.hasAny([resource.data.linkedUid]);
+    }
+
+    // Cuentas que ocupan cupo. Existe porque las reglas no pueden contar documentos.
+    // Invariante: un uid está aquí si y solo si existe su vínculo.
+    match /accountLinkIndex/{primaryUid} {
+      function before() {
+        return resource == null ? [] : resource.data.linkedUids;
+      }
+
+      function after() {
+        return request.resource.data.linkedUids;
+      }
+
+      function validShape() {
+        return request.resource.data.keys().hasOnly(['linkedUids', 'updatedAt'])
+          && after() is list
+          && request.resource.data.updatedAt == request.time;
+      }
+
+      function addsOne() {
+        let added = after().removeAll(before());
+        return isMe(primaryUid)
+          && added.size() == 1
+          && after().size() == before().size() + 1
+          && before().removeAll(after()).size() == 0
+          && (maxLinkedAccounts() == -1 || after().size() <= maxLinkedAccounts())
+          && isPro(primaryUid)
+          && !exists(linkPath(primaryUid, added[0]))
+          && getAfter(linkPath(primaryUid, added[0])).data.status == 'pending';
+      }
+
+      function removesOne() {
+        let removed = before().removeAll(after());
+        return removed.size() == 1
+          && after().size() == before().size() - 1
+          && after().removeAll(before()).size() == 0
+          && (isMe(primaryUid) || isMe(removed[0]))
+          && exists(linkPath(primaryUid, removed[0]))
+          && !existsAfter(linkPath(primaryUid, removed[0]));
+      }
+
+      allow get: if isMe(primaryUid); // la cuenta asociada no ve a las demás
+      allow create: if validShape() && addsOne();
+      allow update: if validShape() && (addsOne() || removesOne());
+    }
+
+    // Cuenta activa de cada quien
+    match /accountSessions/{uid} {
+      allow get: if isMe(uid);
+      allow create, update: if isMe(uid)
+        && request.resource.data.keys().hasOnly(['activeUid', 'updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && canManage(request.resource.data.activeUid);
+    }
+
+    // Auditoría: inmutable, y solo acepta lo que de verdad ocurre en esa misma transacción
+    match /accountAudit/{entryId} {
+      function entry() {
+        return request.resource.data;
+      }
+
+      function link() {
+        return linkPath(entry().primaryUid, entry().linkedUid);
+      }
+
+      function validShape() {
+        return entry().keys().hasOnly(['actorUid', 'primaryUid', 'linkedUid', 'action', 'role', 'createdAt'])
+          && entry().actorUid == request.auth.uid
+          && entry().createdAt == request.time
+          && entry().role is string
+          && entry().role.size() <= 10;
+      }
+
+      function invited() {
+        return entry().action == 'invited'
+          && isMe(entry().primaryUid)
+          && !exists(link())
+          && getAfter(link()).data.role == entry().role;
+      }
+
+      function accepted() {
+        return entry().action == 'accepted'
+          && isMe(entry().linkedUid)
+          && get(link()).data.status == 'pending'
+          && getAfter(link()).data.status == 'active'
+          && get(link()).data.role == entry().role;
+      }
+
+      function removed() {
+        return ((entry().action == 'cancelled' && isMe(entry().primaryUid)
+              && get(link()).data.status == 'pending')
+            || (entry().action == 'declined' && isMe(entry().linkedUid)
+              && get(link()).data.status == 'pending')
+            || (entry().action == 'unlinked'
+              && (isMe(entry().primaryUid) || isMe(entry().linkedUid))
+              && get(link()).data.status == 'active'))
+          && get(link()).data.role == entry().role
+          && !existsAfter(link());
+      }
+
+      function switched() {
+        return entry().action == 'switched'
+          && isMe(entry().primaryUid)
+          && getAfter(/databases/$(database)/documents/accountSessions/$(request.auth.uid))
+            .data.activeUid == entry().linkedUid;
+      }
+
+      allow read: if signedIn()
+        && (resource.data.primaryUid == request.auth.uid || resource.data.linkedUid == request.auth.uid);
+      allow create: if signedIn() && validShape()
+        && (invited() || accepted() || removed() || switched());
+      allow update, delete: if false;
+    }
+  }
+}
