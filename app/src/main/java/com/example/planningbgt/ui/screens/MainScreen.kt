@@ -133,7 +133,6 @@ fun MainScreen(
                       }
                   }
               }
-            }
         }
     }
 
