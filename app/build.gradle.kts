@@ -46,6 +46,9 @@ dependencies {
     // MapLibre
     implementation("org.maplibre.gl:android-sdk:11.0.0")
 
+// Ubicación del dispositivo (FusedLocationProviderClient) - HU-12
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
     // Coil for loading profile images
     implementation("io.coil-kt:coil-compose:2.6.0")
 

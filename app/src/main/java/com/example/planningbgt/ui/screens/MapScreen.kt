@@ -18,6 +18,26 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.NearMe
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon as M3Icon
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.example.planningbgt.model.UserLocation
+import com.example.planningbgt.ui.components.LocationRationaleDialog
+import com.example.planningbgt.ui.components.LocationState
+import com.example.planningbgt.ui.components.NearbyEventsSheet
+import com.example.planningbgt.ui.components.rememberCurrentLocation
+import com.example.planningbgt.ui.theme.UserLocationBlue
+import com.example.planningbgt.util.NearbyEventsCalculator
+import org.maplibre.android.camera.CameraUpdateFactory
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -65,13 +85,13 @@ import com.example.planningbgt.model.User
 import com.example.planningbgt.repository.FirestoreRepository
 import com.example.planningbgt.repository.JoinEventException
 import com.example.planningbgt.repository.ReservationRepository
+import com.example.planningbgt.ui.components.LocalActiveAccount
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.TextPrimary
 import com.example.planningbgt.util.DateTimeUtils
 import com.example.planningbgt.util.EventFormValidator
 import com.example.planningbgt.util.EventJoinRules
 import com.example.planningbgt.util.JoinBlockReason
-import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -138,16 +158,29 @@ private fun pinStyleFor(event: Event): PinStyle =
         PinStyle(R.drawable.pin_event, null)
     }
 
+// Centro de Bogotá: origen alterno de "Cerca de mí" cuando no hay ubicación (HU-12)
+private val BogotaCenter = UserLocation(latitude = 4.6097, longitude = -74.0817)
+
 @Composable
 fun MapScreen() {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val firestoreRepository = remember { FirestoreRepository() }
+    val account = LocalActiveAccount.current
     val events = remember { mutableStateListOf<Event>() }
     var eventsVersion by remember { mutableIntStateOf(0) }
     var mapLibreMap by remember { mutableStateOf<MapLibreMap?>(null) }
     var pinSizePx by remember { mutableIntStateOf(pinSizeStep(13.0)) }
     var selectedEvent by remember { mutableStateOf<Event?>(null) }
+    val locationController = rememberCurrentLocation()
+    val userLocation = locationController.location
+    var showNearby by remember { mutableStateOf(false) }
+    var usingFallbackCenter by remember { mutableStateOf(false) }
+    val nearbyOrigin = if (usingFallbackCenter) BogotaCenter else userLocation
+    // Se calcula sobre la MISMA lista que pinta el mapa (ya filtrada por privacidad y vigencia)
+    val nearbyEvents = remember(nearbyOrigin, eventsVersion) {
+        nearbyOrigin?.let { NearbyEventsCalculator.calculate(events.toList(), it) }.orEmpty()
+    }
 
     // marker.id -> evento: así sabemos a qué evento pertenece el pin tocado
     val markerEvents = remember { HashMap<Long, Event>() }
@@ -188,13 +221,15 @@ fun MapScreen() {
     }
 
     // Cargar eventos al entrar: públicos + privados visibles (propios y de cuentas enlazadas)
-    LaunchedEffect(Unit) {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid
+    LaunchedEffect(account?.uid) {
+        val uid = account?.uid
         val (publicEvents, privateEvents) = coroutineScope {
             val pub = async { firestoreRepository.getPublicEvents().getOrDefault(emptyList()) }
             val priv = async {
                 if (uid != null) {
-                    firestoreRepository.getPrivateEventsForUser(uid).getOrDefault(emptyList())
+                    firestoreRepository
+                        .getPrivateEventsForUser(uid, onlyOwn = account.isDelegated)
+                        .getOrDefault(emptyList())
                 } else {
                     emptyList()
                 }
@@ -205,9 +240,22 @@ fun MapScreen() {
         events.addAll((publicEvents + privateEvents).distinctBy { it.eventId })
         eventsVersion++
     }
-
+    // Llega una ubicación nueva: apaga el origen alterno y, si el usuario pulsó "Mi ubicación",
+    // centra la cámara en él
+    LaunchedEffect(locationController.fixCount) {
+        if (locationController.fixCount == 0) return@LaunchedEffect
+        usingFallbackCenter = false
+        val loc = locationController.location
+        val map = mapLibreMap
+        if (locationController.pendingCenter && loc != null && map != null) {
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 15.0)
+            )
+        }
+        locationController.consumeCenter()
+    }
     // Dibujar pines: al cargar eventos, al terminar de cargar el mapa o al cambiar de escalón
-    LaunchedEffect(mapLibreMap, pinSizePx, eventsVersion) {
+    LaunchedEffect(mapLibreMap, pinSizePx, eventsVersion, userLocation) {
         val map = mapLibreMap ?: return@LaunchedEffect
         map.annotations?.let { map.removeAnnotations(it) }
         markerEvents.clear()
@@ -226,6 +274,20 @@ fun MapScreen() {
                     .icon(icon)
             )
             markerEvents[marker.id] = event
+        }
+       // Pin del usuario (azul).
+        userLocation?.let { loc ->
+            val userStyle = PinStyle(R.drawable.pin_event, UserLocationBlue.toArgb())
+            val userIcon = icons.getOrPut(userStyle) {
+                IconFactory.getInstance(context).fromBitmap(
+                    vectorToBitmap(context, userStyle.drawableId, pinSizePx, userStyle.tintArgb)
+                )
+            }
+            map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(loc.latitude, loc.longitude))
+                    .icon(userIcon)
+            )
         }
     }
 
@@ -246,11 +308,81 @@ fun MapScreen() {
             mapView.onDestroy()
         }
     }
-
+    val loadingLabel = stringResource(R.string.location_loading)
     Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
             factory = { mapView },
             modifier = Modifier.fillMaxSize()
+        )
+         Column(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            ExtendedFloatingActionButton(
+                onClick = { showNearby = true },
+                containerColor = PrimaryYellow,
+                contentColor = TextPrimary
+            ) {
+                M3Icon(imageVector = Icons.Filled.NearMe, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(stringResource(R.string.nearby_button))
+            }
+            FloatingActionButton(
+                onClick = { locationController.refresh(centerOnFix = true) },
+                containerColor = PrimaryYellow,
+                contentColor = TextPrimary
+            ) {
+                if (locationController.state is LocationState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .semantics { contentDescription = loadingLabel },
+                        color = TextPrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    M3Icon(
+                        imageVector = Icons.Filled.MyLocation,
+                        contentDescription = stringResource(R.string.location_my_location)
+                    )
+                }
+            }
+        }
+    }
+
+    // Diálogo que explica el permiso (antes del diálogo del sistema)
+    if (locationController.showRationale) {
+        LocationRationaleDialog(
+            onConfirm = locationController::onRationaleConfirmed,
+            onDismiss = locationController::onRationaleDismissed
+        )
+    }
+
+    // Hoja "Cerca de mí"
+    if (showNearby) {
+        NearbyEventsSheet(
+            state = locationController.state,
+            hasOrigin = nearbyOrigin != null,
+            nearbyEvents = nearbyEvents,
+            usingFallbackCenter = usingFallbackCenter,
+            radiusKm = (NearbyEventsCalculator.DEFAULT_RADIUS_METERS / 1000).toInt(),
+            onDismiss = { showNearby = false },
+            onRefresh = { locationController.refresh() },
+            onOpenAppSettings = locationController::openAppSettings,
+            onOpenLocationSettings = locationController::openLocationSettings,
+            onUseFallbackCenter = { usingFallbackCenter = true },
+            onEventClick = { ev ->
+                showNearby = false
+                mapLibreMap?.animateCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(ev.location.latitude, ev.location.longitude), 15.0
+                    )
+                )
+                selectedEvent = ev // abre el mismo diálogo de detalle que al tocar un pin
+            }
         )
     }
 
@@ -294,7 +426,9 @@ private fun EventInfoDialog(
     onEventDeleted: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val uid = FirebaseAuth.getInstance().currentUser?.uid
+    val account = LocalActiveAccount.current
+    val uid = account?.uid
+    val canAct = account?.canAct ?: true // HU-45: rol "solo gestionar" no reserva
     val reservationRepo = remember { ReservationRepository() }
     val firestoreRepo = remember { FirestoreRepository() }
     val scope = rememberCoroutineScope()
@@ -521,6 +655,12 @@ private fun EventInfoDialog(
 
                 // Zona de acción
                 when {
+                    !canAct && !isHost && isPublic -> Text(
+                        text = stringResource(R.string.accounts_role_cannot_reserve),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
                     hasReservation -> OutlinedButton(
                         onClick = { showCancelConfirm = true },
                         enabled = !isWorking,

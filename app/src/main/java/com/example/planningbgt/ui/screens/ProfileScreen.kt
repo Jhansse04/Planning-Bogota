@@ -28,6 +28,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -53,6 +54,8 @@ import coil.compose.AsyncImage
 import com.example.planningbgt.R
 import com.example.planningbgt.model.User
 import com.example.planningbgt.repository.FirestoreRepository
+import com.example.planningbgt.ui.components.ActiveAccountController
+import com.example.planningbgt.ui.components.LocalActiveAccount
 import com.example.planningbgt.ui.theme.PrimaryYellow
 import com.example.planningbgt.ui.theme.PrimaryYellowDark
 import com.example.planningbgt.ui.theme.TextPrimary
@@ -61,10 +64,15 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ProfileScreen(
+    accountController: ActiveAccountController,
     onLogout: () -> Unit
 ) {
     val firestoreRepo = remember { FirestoreRepository() }
-    val currentUser = FirebaseAuth.getInstance().currentUser
+    val account = LocalActiveAccount.current
+    val uid = account?.uid
+    val isDelegated = account?.isDelegated == true
+    // Solo como respaldo del correo propio: nunca se muestra el del titular en otra cuenta
+    val ownEmail = if (isDelegated) null else FirebaseAuth.getInstance().currentUser?.email
     val coroutineScope = rememberCoroutineScope()
 
     var user by remember { mutableStateOf<User?>(null) }
@@ -72,11 +80,13 @@ fun ProfileScreen(
     var showPrivacySettings by remember { mutableStateOf(false) }
     var showUserPanel by rememberSaveable { mutableStateOf(false) }
     var showCreateEvent by rememberSaveable { mutableStateOf(false) }
+    var showAssociatedAccounts by rememberSaveable { mutableStateOf(false) }
+    var saveFailed by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(true) }
 
     // Cargar datos del usuario desde Firestore
-    LaunchedEffect(currentUser?.uid) {
-        currentUser?.uid?.let { uid ->
+    LaunchedEffect(uid) {
+        if (uid != null) {
             user = firestoreRepo.getUser(uid)
             isLoading = false
         }
@@ -88,7 +98,7 @@ fun ProfileScreen(
             currentPrivacy = user?.privacyLevel ?: "public",
             onPrivacyChanged = { newLevel ->
                 coroutineScope.launch {
-                    currentUser?.uid?.let { uid ->
+                    if (uid != null) {
                         firestoreRepo.updateUser(uid, mapOf("privacyLevel" to newLevel))
                         user = user?.copy(privacyLevel = newLevel)
                     }
@@ -104,6 +114,15 @@ fun ProfileScreen(
         CreateEventScreen(
             onBack = { showCreateEvent = false },
             onEventCreated = { showCreateEvent = false }
+        )
+        return
+    }
+
+    // Cuentas asociadas (HU-45)
+    if (showAssociatedAccounts) {
+        AssociatedAccountsScreen(
+            accountController = accountController,
+            onBack = { showAssociatedAccounts = false }
         )
         return
     }
@@ -136,12 +155,15 @@ fun ProfileScreen(
                     tint = PrimaryYellowDark
                 )
             }
-            IconButton(onClick = { showPrivacySettings = true }) {
-                Icon(
-                    imageVector = Icons.Filled.Settings,
-                    contentDescription = "Configuración",
-                    tint = PrimaryYellowDark
-                )
+            // La privacidad no se delega (HU-45)
+            if (!isDelegated) {
+                IconButton(onClick = { showPrivacySettings = true }) {
+                    Icon(
+                        imageVector = Icons.Filled.Settings,
+                        contentDescription = "Configuración",
+                        tint = PrimaryYellowDark
+                    )
+                }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -156,6 +178,25 @@ fun ProfileScreen(
             )
         ) {
             Text(stringResource(R.string.profile_my_panel), fontWeight = FontWeight.Bold)
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Cuentas asociadas (HU-45): visible para todos; el plan se valida dentro
+        OutlinedButton(
+            onClick = { showAssociatedAccounts = true },
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.onSurface
+            )
+        ) {
+            Text(stringResource(R.string.accounts_title), fontWeight = FontWeight.Bold)
+        }
+        if (saveFailed) {
+            Text(
+                text = stringResource(R.string.accounts_profile_save_error),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -203,7 +244,7 @@ fun ProfileScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = user?.email ?: currentUser?.email ?: "",
+                    text = user?.email ?: ownEmail ?: "",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -266,15 +307,19 @@ fun ProfileScreen(
             onDismiss = { showEditDialog = false },
             onSave = { newName, newPhotoUrl ->
                 coroutineScope.launch {
-                    currentUser?.uid?.let { uid ->
+                    if (uid != null) {
                         val fields = mutableMapOf<String, Any>()
                         if (newName.isNotBlank()) fields["name"] = newName
                         fields["profilePictureUrl"] = newPhotoUrl
-                        firestoreRepo.updateUser(uid, fields)
-                        user = user?.copy(
-                            name = if (newName.isNotBlank()) newName else user?.name ?: "",
-                            profilePictureUrl = newPhotoUrl
-                        )
+                        // Si el servidor lo rechaza (permiso revocado), no se finge que se guardó
+                        val saved = firestoreRepo.updateUser(uid, fields)
+                        saveFailed = !saved
+                        if (saved) {
+                            user = user?.copy(
+                                name = if (newName.isNotBlank()) newName else user?.name ?: "",
+                                profilePictureUrl = newPhotoUrl
+                            )
+                        }
                     }
                 }
                 showEditDialog = false
