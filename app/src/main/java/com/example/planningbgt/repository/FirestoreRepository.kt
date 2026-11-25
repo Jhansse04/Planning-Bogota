@@ -72,6 +72,70 @@ class FirestoreRepository {
         }
     }
 
+    suspend fun getFilteredEvents(
+        viewerUid: String? = null,
+        queryText: String = "",
+        category: String? = null,
+        eventType: String? = null,
+        dateMillis: Long? = null
+    ): List<Event> {
+        return try {
+            val baseEvents: List<Event> = when (eventType) {
+                "public" -> getPublicEvents().getOrDefault(emptyList())
+                "private" -> {
+                    if (viewerUid == null) emptyList()
+                    else getPrivateEventsForUser(viewerUid).getOrDefault(emptyList())
+                }
+                "paid_promotion" -> {
+                    val snap = db.collection("events")
+                        .whereEqualTo("eventType", "paid_promotion")
+                        .get().await()
+                    snap.documents.toLiveEvents()
+                }
+                null -> {
+                    getEvents(viewerUid)
+                }
+                else -> getEvents(viewerUid).filter { it.eventType == eventType }
+            }
+
+            var filtered = baseEvents
+
+            if (!category.isNullOrEmpty()) {
+                filtered = filtered.filter { it.category.equals(category, ignoreCase = true) }
+            }
+
+            if (dateMillis != null) {
+                val cal = java.util.Calendar.getInstance().apply { timeInMillis = dateMillis }
+                cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
+                cal.set(java.util.Calendar.MINUTE, 0)
+                cal.set(java.util.Calendar.SECOND, 0)
+                cal.set(java.util.Calendar.MILLISECOND, 0)
+                val startMillis = cal.timeInMillis
+                cal.add(java.util.Calendar.DAY_OF_YEAR, 1)
+                val endMillis = cal.timeInMillis
+
+                filtered = filtered.filter {
+                    val t = it.date.toDate().time
+                    t in startMillis until endMillis
+                }
+            }
+
+            if (queryText.isNotBlank()) {
+                val q = queryText.lowercase().trim()
+                filtered = filtered.filter {
+                    val searchText = "${it.title} ${it.description} ${it.category} ${it.eventType}".lowercase()
+                    searchText.contains(q)
+                }
+            }
+
+            filtered.sortedBy { it.date }
+        } catch (e: Exception) {
+            Log.e("FirestoreRepository", "Error en búsqueda filtrada: ${e.message}", e)
+            emptyList()
+        }
+    }
+
+
     suspend fun addEvent(event: Event): String? {
         return try {
             val docRef = db.collection("events").add(event).await()

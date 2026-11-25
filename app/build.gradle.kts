@@ -72,4 +72,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation("io.mockk:mockk:1.13.13")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
  }

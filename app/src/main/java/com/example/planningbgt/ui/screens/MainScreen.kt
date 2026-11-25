@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Event
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Person
@@ -59,6 +60,7 @@ fun MainScreen(
 
     val navItems = listOf(
         BottomNavItem("Mapa", Icons.Filled.Map),
+        BottomNavItem("Eventos", Icons.Filled.Event),
         BottomNavItem("Social", Icons.Filled.People),
         BottomNavItem("Perfil", Icons.Filled.Person)
     )
@@ -104,31 +106,33 @@ fun MainScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (account == null) {
-                CircularProgressIndicator(
-                    color = PrimaryYellowDark,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            } else {
-                // key: al cambiar de cuenta, ninguna pantalla conserva datos de la anterior (HU-45)
-                key(account.uid) {
-                    CompositionLocalProvider(LocalActiveAccount provides account) {
-                        when (selectedTab) {
-                            0 -> MapScreen()
-                            1 -> if (account.isDelegated) {
-                                NotAvailableWhileManaging(
-                                    onReturn = { accountController.switchTo(ownerUid) }
-                                )
-                            } else {
-                                SocialScreen()
-                            }
-                            2 -> ProfileScreen(
-                                accountController = accountController,
-                                onLogout = onLogout
-                            )
-                        }
-                    }
-                }
+              if (account == null) {
+                  CircularProgressIndicator(
+                      color = PrimaryYellowDark,
+                      modifier = Modifier.align(Alignment.Center)
+                  )
+              } else {
+                  // key: al cambiar de cuenta, ninguna pantalla conserva datos de la anterior (HU-45)
+                  key(account.uid) {
+                      CompositionLocalProvider(LocalActiveAccount provides account) {
+                          when (selectedTab) {
+                              0 -> MapScreen()
+                              1 -> EventsScreen()
+                              2 -> if (account.isDelegated) {
+                                  NotAvailableWhileManaging(
+                                      onReturn = { accountController.switchTo(ownerUid) }
+                                  )
+                              } else {
+                                  SocialScreen()
+                              }
+                              3 -> ProfileScreen(
+                                  accountController = accountController,
+                                  onLogout = onLogout
+                              )
+                          }
+                      }
+                  }
+              }
             }
         }
     }
